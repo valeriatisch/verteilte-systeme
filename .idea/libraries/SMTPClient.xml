@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SMTPClient">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/SMTPClient.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
