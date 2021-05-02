@@ -123,8 +123,38 @@ public class SMTPServer {
         to the e-mail address of the recipient. The values for <sender> and <receiver> can be extracted from the commands
         MAIL FROM and RCPT TO.
         Use randomId() for <message_id>.
-         */
+        */
         // Handle HELO, MAIL FROM, RCPT TO, DATA, HELP and, QUIT
+        try {
+            SocketChannel channel = (SocketChannel) key.channel();
+            ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+            ClientState client = (ClientState) key.attachment();
+            channel.read(buffer);
+            buffer.flip();
+            String msg = new String(buffer.array());
+            
+            if(msg.contains("HELO")){
+
+            }
+            else if(msg.contains("MAIL FROM")){
+
+            }
+            else if(msg.contains("RCPT TO")){
+                
+            }
+            else if(msg.contains("DATA")){
+                
+            }
+            else if(msg.contains("HELP")){
+                
+            }
+            else if(msg.contains("QUIT")){
+                
+            }
+
+        } catch (IOException e){
+            e.printStackTrace();
+        }        
     }
 
     public void startServer() {
