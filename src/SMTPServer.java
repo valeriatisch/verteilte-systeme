@@ -1,11 +1,16 @@
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 
 /**
@@ -47,23 +52,46 @@ public class SMTPServer {
         this.ssc.register(selector, SelectionKey.OP_ACCEPT);
     }
 
-    private static void writeToFile(byte [] msg, SelectionKey key) {
-        //TODO
+    private static void writeToFile(byte [] msg, String sender, String receiver) throws IOException {
+        Path path = Paths.get(System.getProperty("user.dir") + "/mails/" + receiver);
+        if (!Files.exists(path)) {
+            System.out.println("Creating directory ..");
+            try {
+                Files.createDirectories(path);
+                System.out.println("Directory created!");
+            } catch ( IOException e) {
+                System.out.println("Error when creating directory" + e.getMessage());
+            }
+        }
+        String file = path + "/" + sender + randomId() + ".txt";
+        Path filePath = Paths.get(file);
+        Files.write(filePath, msg);
     }
 
-    private static void writeToChannel(byte [] msg, SelectionKey key) {
-        //TODO
+    private static void writeToChannel(byte [] msg, SelectionKey key) throws IOException {
+        // Write a msg into a key's Channel
+        SocketChannel channel = (SocketChannel) key.channel();
+        ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+        buffer.put(msg);
+        buffer.flip();
+        channel.write(buffer);
+        buffer.clear();
     }
 
     private void readMessage(SelectionKey key) {
         //TODO
     }
 
-    private int randomId() {
+    private static int randomId() {
         return (int) (Math.random() * 9999);
     }
 
     private void handleAccept(SelectionKey key) {
+        ServerSocketChannel sock = (ServerSocketChannel) key.channel();
+        SocketChannel client = sock.accept();
+        client.configureBlocking(false);
+        client.register(selector, SelectionKey.OP_READ |
+                SelectionKey.OP_WRITE);
         //TODO
         // Create a new socket
         // Accept the connection request
