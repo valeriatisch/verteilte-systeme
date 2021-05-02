@@ -27,12 +27,21 @@ public class SMTPServer {
     private ByteBuffer buffy = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
     private static Charset charset = StandardCharsets.US_ASCII;
     // https://www.knownhost.com/wiki/email/troubleshooting/error-numbers
-    private static byte [] readyResp    = new String("220 The SMTP server is ready to proceed.").getBytes(charset);
-    private static byte [] ackResp      = new String("250 Fantastic! Your email message was delivered, as expected.").getBytes(charset);
-    private static byte [] inputResp    = new String("354 The \"From\" and \"To\" information has been received").getBytes(charset);
-    private static byte [] unrecResp    = new String("500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error").getBytes(charset);
-    private static byte [] helpResp     = new String("214 Help message received. Our SMTP server supports the following commands:").getBytes(charset);
-    private static byte [] closingResp  = new String("221 The connection to the mail server is now ending.").getBytes(charset);
+    private static byte [] readyResp    = "220 The SMTP server is ready to proceed.".getBytes(charset);
+    private static byte [] ackResp      = "250 Fantastic! Your email message was delivered, as expected.".getBytes(charset);
+    private static byte [] inputResp    = "354 The \"From\" and \"To\" information has been received".getBytes(charset);
+    private static byte [] unrecResp    = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error".getBytes(charset);
+    private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:".getBytes(charset);
+    private static byte [] closingResp  = "221 The connection to the mail server is now ending.".getBytes(charset);
+
+    static int serviceReady = 0;
+    static int help         = 1;
+    static int helo         = 2;
+    static int mailFrom     = 3;
+    static int rcptTo       = 4;
+    static int data         = 5;
+    static int msg          = 6;
+    static int quit         = 7;
 
     private final int port;
     private ServerSocketChannel ssc;
@@ -87,18 +96,22 @@ public class SMTPServer {
     }
 
     private void handleAccept(SelectionKey key) {
-        ServerSocketChannel sock = (ServerSocketChannel) key.channel();
-        SocketChannel client = sock.accept();
-        client.configureBlocking(false);
-        client.register(selector, SelectionKey.OP_READ |
-                SelectionKey.OP_WRITE);
-        //TODO
-        // Create a new socket
-        // Accept the connection request
-        // Non-blocking
-        // Register
-        // Attach E-Mail
-        // Send Service Ready
+        try {
+            ServerSocketChannel sock = (ServerSocketChannel) key.channel();
+            SocketChannel client = sock.accept();
+            client.configureBlocking(false);
+            SelectionKey chnnl = client.register(selector, SelectionKey.OP_READ |
+                    SelectionKey.OP_WRITE);
+            // Attach E-Mail
+            ClientState clientMail = new ClientState(randomId());
+            chnnl.attach(clientMail);
+            // Send Service Ready
+            writeToChannel(readyResp, chnnl);
+            // Set state to 0
+            clientMail.state = serviceReady;
+        } catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     private void handleRead(SelectionKey key) {
