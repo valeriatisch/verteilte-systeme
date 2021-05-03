@@ -34,14 +34,14 @@ public class SMTPServer {
     private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:".getBytes(charset);
     private static byte [] closingResp  = "221 The connection to the mail server is now ending.".getBytes(charset);
 
-    static int serviceReady = 0;
-    static int help         = 1;
-    static int helo         = 2;
-    static int mailFrom     = 3;
-    static int rcptTo       = 4;
-    static int data         = 5;
-    static int msg          = 6;
-    static int quit         = 7;
+    protected final static int serviceReady = 0;
+    protected final static int help         = 1;
+    protected final static int helo         = 2;
+    protected final static int mailFrom     = 3;
+    protected final static int rcptTo       = 4;
+    protected final static int data         = 5;
+    protected final static int msg          = 6;
+    protected final static int quit         = 7;
 
     private final int port;
     private ServerSocketChannel ssc;
@@ -61,8 +61,8 @@ public class SMTPServer {
         this.ssc.register(selector, SelectionKey.OP_ACCEPT);
     }
 
-    private static void writeToFile(byte [] msg, String sender, String receiver) throws IOException {
-        Path path = Paths.get(System.getProperty("user.dir") + "/mails/" + receiver);
+    private static void writeToFile(ClientState client) throws IOException {
+        Path path = Paths.get(System.getProperty("user.dir") + "/mails/" + client.getReceiver());
         if (!Files.exists(path)) {
             System.out.println("Creating directory ..");
             try {
@@ -72,9 +72,9 @@ public class SMTPServer {
                 System.out.println("Error when creating directory" + e.getMessage());
             }
         }
-        String file = path + "/" + sender + randomId() + ".txt";
+        String file = path + "/" + client.getSender() + randomId() + ".txt";
         Path filePath = Paths.get(file);
-        Files.write(filePath, msg);
+        Files.writeString(filePath, client.getMessage(), charset);
     }
 
     private static void writeToChannel(byte [] msg, SelectionKey key) throws IOException {
@@ -103,12 +103,10 @@ public class SMTPServer {
             SelectionKey chnnl = client.register(selector, SelectionKey.OP_READ |
                     SelectionKey.OP_WRITE);
             // Attach E-Mail
-            ClientState clientMail = new ClientState(randomId());
+            ClientState clientMail = new ClientState();
             chnnl.attach(clientMail);
             // Send Service Ready
             writeToChannel(readyResp, chnnl);
-            // Set state to 0
-            clientMail.state = serviceReady;
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -134,22 +132,26 @@ public class SMTPServer {
             String msg = new String(buffer.array());
             
             if(msg.contains("HELO")){
-
+                client.setState(helo);
             }
             else if(msg.contains("MAIL FROM")){
-
+                client.setState(mailFrom);
+                // set client.sender
             }
             else if(msg.contains("RCPT TO")){
-                
+                client.setState(rcptTo);
+                // set client.receiver
             }
             else if(msg.contains("DATA")){
-                
+                client.setState(data);
+                // set client.Message
             }
             else if(msg.contains("HELP")){
-                
+                client.setState(help);
             }
             else if(msg.contains("QUIT")){
-                
+                client.setState(quit);
+                // write into file
             }
 
         } catch (IOException e){
