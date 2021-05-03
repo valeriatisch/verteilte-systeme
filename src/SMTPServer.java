@@ -152,6 +152,7 @@ public class SMTPServer {
             else if(msg.contains("QUIT")){
                 client.setState(quit);
                 // write into file
+                writeToFile(client);
             }
 
         } catch (IOException e){
