@@ -2,11 +2,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +36,10 @@ public class SMTPServer {
     private static byte [] unrecResp    = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error".getBytes(charset);
     private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:".getBytes(charset);
     private static byte [] closingResp  = "221 The connection to the mail server is now ending.".getBytes(charset);
+    private static byte [] invalidResp  = "503 Bad sequence of commands.".getBytes(charset);
+    private static byte [] syntaxResp   = "501 Syntax error in parameters or arguments.".getBytes(charset);
+    private static byte [] unknownResp  = "500 Syntax error, command unrecognized.".getBytes(charset);
+    private static byte [] internalResp = "451 Requested action aborted: error in processing.".getBytes(charset);
 
     protected final static int serviceReady = 0;
     protected final static int help         = 1;
@@ -46,6 +53,8 @@ public class SMTPServer {
     private final int port;
     private ServerSocketChannel ssc;
     private Selector selector;
+
+    private static String [] supportedCmds = {"help", "helo", "mail from", "rcpt to", "quit", "data"};
 
     public SMTPServer(int port) throws Exception {
         this.port = port;
@@ -112,6 +121,21 @@ public class SMTPServer {
         }
     }
 
+    private boolean commandExists(String message) {
+        boolean exists = false;
+        for(int i=0; i<supportedCmds.length; i++) {
+            if(message.length() == 4){
+                exists = message == supportedCmds[i];
+                if (exists) break;
+            }
+            else {
+                exists = message.indexOf(supportedCmds[i]) == 0;
+                if (exists) break;
+            }
+        }
+        return exists;
+    }
+
     private void handleRead(SelectionKey key) {
         //TODO
         // Received data into buffer
@@ -129,33 +153,96 @@ public class SMTPServer {
             ClientState client = (ClientState) key.attachment();
             channel.read(buffer);
             buffer.flip();
-            String msg = new String(buffer.array());
-            
-            if(msg.contains("HELO")){
-                client.setState(helo);
+            CharsetDecoder decoder = charset.newDecoder();
+            CharBuffer charBuf = decoder.decode(buffer);
+            String message = charBuf.toString();
+            // String message = new String(buffer.array(), charset);
+
+
+            System.out.println(message);
+            if (client.getState() != data && !commandExists(message.toLowerCase())) {
+                writeToChannel(unknownResp, key);
+                return;
             }
-            else if(msg.contains("MAIL FROM")){
-                client.setState(mailFrom);
-                // set client.sender
+            // 'help' message can be send anytime
+            if (message.toLowerCase() == "help" ) {
+                writeToChannel(helpResp, key);
+                return;
             }
-            else if(msg.contains("RCPT TO")){
-                client.setState(rcptTo);
-                // set client.receiver
-            }
-            else if(msg.contains("DATA")){
-                client.setState(data);
-                // set client.Message
-            }
-            else if(msg.contains("HELP")){
-                client.setState(help);
-            }
-            else if(msg.contains("QUIT")){
-                client.setState(quit);
-                // write into file
-                writeToFile(client);
+
+            if (message.toLowerCase() == "helo" && client.getState() != serviceReady) {
+                writeToChannel(syntaxResp, key);
+                return;
+            } 
+            // check clients current state to determine which command is expected
+            switch (client.getState()) {
+                case serviceReady:
+                    if (message.toLowerCase() != "helo") {
+                        writeToChannel(invalidResp, key);
+                        break;
+                    }
+                    writeToChannel(ackResp, key);
+                    client.setState(helo);
+                    break;
+
+                case helo:
+                    if (message.substring(0, 8).toLowerCase() != "mail from") {
+                        writeToChannel(invalidResp, key);
+                        break;
+                    }
+                    client.setSender(message.substring(9));
+                    writeToChannel(ackResp, key);
+                    client.setState(mailFrom);
+                    break;
+
+                case mailFrom:
+                    if (message.substring(0, 6).toLowerCase() != "rcpt to") {
+                        writeToChannel(invalidResp, key);
+                        break;
+                    }
+                    client.setReceiver(message.substring(7));
+                    writeToChannel(ackResp, key);
+                    break;
+
+                case rcptTo:
+                    if (message.toLowerCase() != "data") {
+                        writeToChannel(invalidResp, key);
+                        break;
+                    }
+                    writeToChannel(inputResp, key);
+                    client.setState(data);
+                    break;
+
+                case data:
+                    if (message.indexOf("\r\n.\r\n") == message.length()-5) {
+                        client.setState(msg);
+                        writeToChannel(ackResp, key);
+                    }
+                    client.setMessage(client.getMessage() + message);
+                    break;
+
+                case msg:
+                    if (message != "quit") {
+                        writeToChannel(invalidResp, key);
+                        break;
+                    }
+                    writeToChannel(closingResp, key);
+                    client.setState(quit);
+                    writeToFile(client);
+                    channel.close();
+                    break;
+
+                default:
+                    writeToChannel(internalResp, key);
+                    break;
             }
 
         } catch (IOException e){
+            try {
+                writeToChannel(internalResp, key);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
             e.printStackTrace();
         }        
     }
@@ -176,9 +263,17 @@ public class SMTPServer {
                     // Get current key
                     key = iter.next();
                     // Is a new connection coming in?
-                    if(key.isAcceptable()) handleAccept(key);
+                    if(key.isAcceptable()) {
+                        System.out.println("Key is acceptable.");
+                        handleAccept(key);
+                        System.out.println("Key was accepted.");
+                    }
                     // Is there data to read on this channel?
-                    if(key.isReadable()) handleRead(key);
+                    if(key.isReadable()) {
+                        System.out.println("Key is readable.");
+                        handleRead(key);
+                        System.out.println("Key is read.");
+                    } 
                     // // Remove key from selected set; it's been handled
                     iter.remove();
                 }
