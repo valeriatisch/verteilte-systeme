@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 
+import org.graalvm.compiler.core.common.type.SymbolicJVMCIReference;
+
 /**
  * @author Moritz Luca Bostelmann
  * @author Samy Abdellah Hamdad
@@ -54,7 +56,7 @@ public class SMTPServer {
     private ServerSocketChannel ssc;
     private Selector selector;
 
-    private static String [] supportedCmds = {"help", "helo", "mail from", "rcpt to", "quit", "data"};
+    private static String [] supportedCmds = {"helo", "help\r\n", "mail from", "rcpt to", "quit\r\n", "data\r\n"};
 
     public SMTPServer(int port) throws Exception {
         this.port = port;
@@ -122,14 +124,18 @@ public class SMTPServer {
     }
 
     private boolean commandExists(String message) {
+        // TODO adjust for all commands (helo not correct)
+        if (message.length()<6) return false;
+        // extra check for "helo"
+        if (message.substring(0, 4).equalsIgnoreCase("helo")) return true;
         boolean exists = false;
-        for(int i=0; i<supportedCmds.length; i++) {
-            if(message.length() == 4){
-                exists = message == supportedCmds[i];
+        for(int i=1; i<supportedCmds.length; i++) {
+            if(message.length() < 7){
+                exists = message.equalsIgnoreCase(supportedCmds[i]);
                 if (exists) break;
             }
             else {
-                exists = message.indexOf(supportedCmds[i]) == 0;
+                exists = message.toLowerCase().indexOf(supportedCmds[i]) == 0;
                 if (exists) break;
             }
         }
@@ -160,24 +166,25 @@ public class SMTPServer {
 
 
             System.out.println(message);
-            if (client.getState() != data && !commandExists(message.toLowerCase())) {
+            if (client.getState() != data && !commandExists(message)) {
                 writeToChannel(unknownResp, key);
                 return;
             }
             // 'help' message can be send anytime
-            if (message.toLowerCase() == "help" ) {
+            if (message.equalsIgnoreCase("help\r\n")) {
                 writeToChannel(helpResp, key);
                 return;
             }
 
-            if (message.toLowerCase() == "helo" && client.getState() != serviceReady) {
+            
+            if (message.length() >= 4 && message.substring(0,4).equalsIgnoreCase("helo") && client.getState() != serviceReady) {
                 writeToChannel(syntaxResp, key);
                 return;
             } 
             // check clients current state to determine which command is expected
             switch (client.getState()) {
                 case serviceReady:
-                    if (message.toLowerCase() != "helo") {
+                    if (!message.substring(0,4).equalsIgnoreCase("helo")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
@@ -186,26 +193,27 @@ public class SMTPServer {
                     break;
 
                 case helo:
-                    if (message.substring(0, 8).toLowerCase() != "mail from") {
+                    if (!message.substring(0, 9).equalsIgnoreCase("mail from")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setSender(message.substring(9));
+                    client.setSender(message.substring(11, message.length()-3));
                     writeToChannel(ackResp, key);
                     client.setState(mailFrom);
                     break;
 
                 case mailFrom:
-                    if (message.substring(0, 6).toLowerCase() != "rcpt to") {
+                    if (!message.substring(0, 7).equalsIgnoreCase("rcpt to")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setReceiver(message.substring(7));
+                    client.setReceiver(message.substring(9, message.length()-3));
                     writeToChannel(ackResp, key);
+                    client.setState(rcptTo);
                     break;
 
                 case rcptTo:
-                    if (message.toLowerCase() != "data") {
+                    if (!message.equalsIgnoreCase("data\r\n")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
@@ -214,15 +222,16 @@ public class SMTPServer {
                     break;
 
                 case data:
-                    if (message.indexOf("\r\n.\r\n") == message.length()-5) {
+                    String complete_message = client.getMessage() + message;
+                    if (complete_message.indexOf("\r\n.\r\n") == complete_message.length()-5) {
                         client.setState(msg);
                         writeToChannel(ackResp, key);
                     }
-                    client.setMessage(client.getMessage() + message);
+                    client.setMessage(complete_message);
                     break;
 
                 case msg:
-                    if (message != "quit") {
+                    if (!message.equalsIgnoreCase("quit\r\n")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
@@ -263,17 +272,9 @@ public class SMTPServer {
                     // Get current key
                     key = iter.next();
                     // Is a new connection coming in?
-                    if(key.isAcceptable()) {
-                        System.out.println("Key is acceptable.");
-                        handleAccept(key);
-                        System.out.println("Key was accepted.");
-                    }
+                    if(key.isAcceptable()) handleAccept(key);
                     // Is there data to read on this channel?
-                    if(key.isReadable()) {
-                        System.out.println("Key is readable.");
-                        handleRead(key);
-                        System.out.println("Key is read.");
-                    } 
+                    if(key.isReadable()) handleRead(key);
                     // // Remove key from selected set; it's been handled
                     iter.remove();
                 }
