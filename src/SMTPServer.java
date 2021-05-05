@@ -16,8 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 
-import org.graalvm.compiler.core.common.type.SymbolicJVMCIReference;
-
 /**
  * @author Moritz Luca Bostelmann
  * @author Samy Abdellah Hamdad
