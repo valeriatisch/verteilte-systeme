@@ -30,16 +30,16 @@ public class SMTPServer {
     private ByteBuffer buffy = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
     private static Charset charset = StandardCharsets.US_ASCII;
     // https://www.knownhost.com/wiki/email/troubleshooting/error-numbers
-    private static byte [] readyResp    = "220 The SMTP server is ready to proceed.".getBytes(charset);
-    private static byte [] ackResp      = "250 Fantastic! Your email message was delivered, as expected.".getBytes(charset);
-    private static byte [] inputResp    = "354 The \"From\" and \"To\" information has been received".getBytes(charset);
-    private static byte [] unrecResp    = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error".getBytes(charset);
-    private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:".getBytes(charset);
-    private static byte [] closingResp  = "221 The connection to the mail server is now ending.".getBytes(charset);
-    private static byte [] invalidResp  = "503 Bad sequence of commands.".getBytes(charset);
-    private static byte [] syntaxResp   = "501 Syntax error in parameters or arguments.".getBytes(charset);
-    private static byte [] unknownResp  = "500 Syntax error, command unrecognized.".getBytes(charset);
-    private static byte [] internalResp = "451 Requested action aborted: error in processing.".getBytes(charset);
+    private static byte [] readyResp    = "220 The SMTP server is ready to proceed.\r\n".getBytes(charset);
+    private static byte [] ackResp      = "250 Fantastic! Your email message was delivered, as expected.\r\n".getBytes(charset);
+    private static byte [] inputResp    = "354 The \"From\" and \"To\" information has been received.\r\n".getBytes(charset);
+    private static byte [] unrecResp    = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error.\r\n".getBytes(charset);
+    private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:\r\n".getBytes(charset);
+    private static byte [] closingResp  = "221 The connection to the mail server is now ending.\r\n".getBytes(charset);
+    private static byte [] invalidResp  = "503 Bad sequence of commands.\r\n".getBytes(charset);
+    private static byte [] syntaxResp   = "501 Syntax error in parameters or arguments.\r\n".getBytes(charset);
+    private static byte [] unknownResp  = "500 Syntax error, command unrecognized.\r\n".getBytes(charset);
+    private static byte [] internalResp = "451 Requested action aborted: error in processing.\r\n".getBytes(charset);
 
     protected final static int serviceReady = 0;
     protected final static int help         = 1;
