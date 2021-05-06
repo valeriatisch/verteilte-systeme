@@ -30,31 +30,35 @@ public class SMTPServer {
     private ByteBuffer buffy = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
     private static Charset charset = StandardCharsets.US_ASCII;
     // https://www.knownhost.com/wiki/email/troubleshooting/error-numbers
-    private static byte [] readyResp    = "220 The SMTP server is ready to proceed.\r\n".getBytes(charset);
-    private static byte [] ackResp      = "250 Fantastic! Your email message was delivered, as expected.\r\n".getBytes(charset);
-    private static byte [] inputResp    = "354 The \"From\" and \"To\" information has been received.\r\n".getBytes(charset);
-    private static byte [] unrecResp    = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error.\r\n".getBytes(charset);
-    private static byte [] helpResp     = "214 Help message received. Our SMTP server supports the following commands:\r\n".getBytes(charset);
-    private static byte [] closingResp  = "221 The connection to the mail server is now ending.\r\n".getBytes(charset);
-    private static byte [] invalidResp  = "503 Bad sequence of commands.\r\n".getBytes(charset);
-    private static byte [] syntaxResp   = "501 Syntax error in parameters or arguments.\r\n".getBytes(charset);
-    private static byte [] unknownResp  = "500 Syntax error, command unrecognized.\r\n".getBytes(charset);
-    private static byte [] internalResp = "451 Requested action aborted: error in processing.\r\n".getBytes(charset);
+    private static byte[] readyResp = "220 The SMTP server is ready to proceed.\r\n".getBytes(charset);
+    private static byte[] ackResp = "250 Fantastic! Your email message was delivered, as expected.\r\n"
+            .getBytes(charset);
+    private static byte[] inputResp = "354 The \"From\" and \"To\" information has been received.\r\n"
+            .getBytes(charset);
+    private static byte[] unrecResp = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error.\r\n"
+            .getBytes(charset);
+    private static byte[] helpResp = "214 Help message received. Our SMTP server supports the following commands:\r\n"
+            .getBytes(charset);
+    private static byte[] closingResp = "221 The connection to the mail server is now ending.\r\n".getBytes(charset);
+    private static byte[] invalidResp = "503 Bad sequence of commands.\r\n".getBytes(charset);
+    private static byte[] syntaxResp = "501 Syntax error in parameters or arguments.\r\n".getBytes(charset);
+    private static byte[] unknownResp = "500 Syntax error, command unrecognized.\r\n".getBytes(charset);
+    private static byte[] internalResp = "451 Requested action aborted: error in processing.\r\n".getBytes(charset);
 
     protected final static int serviceReady = 0;
-    protected final static int help         = 1;
-    protected final static int helo         = 2;
-    protected final static int mailFrom     = 3;
-    protected final static int rcptTo       = 4;
-    protected final static int data         = 5;
-    protected final static int msg          = 6;
-    protected final static int quit         = 7;
+    protected final static int help = 1;
+    protected final static int helo = 2;
+    protected final static int mailFrom = 3;
+    protected final static int rcptTo = 4;
+    protected final static int data = 5;
+    protected final static int msg = 6;
+    protected final static int quit = 7;
 
     private final int port;
     private ServerSocketChannel ssc;
     private Selector selector;
 
-    private static String [] supportedCmds = {"helo", "help\r\n", "mail from", "rcpt to", "quit\r\n", "data\r\n"};
+    private static String[] supportedCmds = { "helo", "help\r\n", "mail from", "rcpt to", "quit\r\n", "data\r\n" };
 
     public SMTPServer(int port) throws Exception {
         this.port = port;
@@ -66,7 +70,8 @@ public class SMTPServer {
         this.ssc.socket().bind(new InetSocketAddress(port));
         // Create a selector
         this.selector = Selector.open();
-        // Register the server socket channel, indicating an interest in accepting new connections
+        // Register the server socket channel, indicating an interest in accepting new
+        // connections
         this.ssc.register(selector, SelectionKey.OP_ACCEPT);
     }
 
@@ -77,7 +82,7 @@ public class SMTPServer {
             try {
                 Files.createDirectories(path);
                 System.out.println("Directory created!");
-            } catch ( IOException e) {
+            } catch (IOException e) {
                 System.out.println("Error when creating directory" + e.getMessage());
             }
         }
@@ -86,7 +91,7 @@ public class SMTPServer {
         Files.writeString(filePath, client.getMessage(), charset);
     }
 
-    private static void writeToChannel(byte [] msg, SelectionKey key) throws IOException {
+    private static void writeToChannel(byte[] msg, SelectionKey key) throws IOException {
         // Write a msg into a key's Channel
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
@@ -97,7 +102,7 @@ public class SMTPServer {
     }
 
     private void readMessage(SelectionKey key) {
-        //TODO
+        // TODO
     }
 
     private static int randomId() {
@@ -109,47 +114,50 @@ public class SMTPServer {
             ServerSocketChannel sock = (ServerSocketChannel) key.channel();
             SocketChannel client = sock.accept();
             client.configureBlocking(false);
-            SelectionKey chnnl = client.register(selector, SelectionKey.OP_READ |
-                    SelectionKey.OP_WRITE);
+            SelectionKey chnnl = client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             // Attach E-Mail
             ClientState clientMail = new ClientState();
             chnnl.attach(clientMail);
             // Send Service Ready
             writeToChannel(readyResp, chnnl);
-        } catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private boolean commandExists(String message) {
         // TODO adjust for all commands (helo not correct)
-        if (message.length()<6) return false;
+        if (message.length() < 6)
+            return false;
         // extra check for "helo"
-        if (message.substring(0, 4).equalsIgnoreCase("helo")) return true;
+        if (message.substring(0, 4).equalsIgnoreCase("helo"))
+            return true;
         boolean exists = false;
-        for(int i=1; i<supportedCmds.length; i++) {
-            if(message.length() < 7){
+        for (int i = 1; i < supportedCmds.length; i++) {
+            if (message.length() < 7) {
                 exists = message.equalsIgnoreCase(supportedCmds[i]);
-                if (exists) break;
-            }
-            else {
+                if (exists)
+                    break;
+            } else {
                 exists = message.toLowerCase().indexOf(supportedCmds[i]) == 0;
-                if (exists) break;
+                if (exists)
+                    break;
             }
         }
         return exists;
     }
 
     private void handleRead(SelectionKey key) {
-        //TODO
+        // TODO
         // Received data into buffer
         /*
-        Received e-mails are to be stored efficiently in a file following the naming convention <sender>_<message_id>
-        under the directory <receiver>, where <sender> corresponds to the e-mail address of the sender and <receiver>
-        to the e-mail address of the recipient. The values for <sender> and <receiver> can be extracted from the commands
-        MAIL FROM and RCPT TO.
-        Use randomId() for <message_id>.
-        */
+         * Received e-mails are to be stored efficiently in a file following the naming
+         * convention <sender>_<message_id> under the directory <receiver>, where
+         * <sender> corresponds to the e-mail address of the sender and <receiver> to
+         * the e-mail address of the recipient. The values for <sender> and <receiver>
+         * can be extracted from the commands MAIL FROM and RCPT TO. Use randomId() for
+         * <message_id>.
+         */
         // Handle HELO, MAIL FROM, RCPT TO, DATA, HELP and, QUIT
         try {
             SocketChannel channel = (SocketChannel) key.channel();
@@ -162,7 +170,6 @@ public class SMTPServer {
             String message = charBuf.toString();
             // String message = new String(buffer.array(), charset);
 
-
             System.out.println(message);
             if (client.getState() != data && !commandExists(message)) {
                 writeToChannel(unknownResp, key);
@@ -174,15 +181,15 @@ public class SMTPServer {
                 return;
             }
 
-            
-            if (message.length() >= 4 && message.substring(0,4).equalsIgnoreCase("helo") && client.getState() != serviceReady) {
+            if (message.length() >= 4 && message.substring(0, 4).equalsIgnoreCase("helo")
+                    && client.getState() != serviceReady) {
                 writeToChannel(syntaxResp, key);
                 return;
-            } 
+            }
             // check clients current state to determine which command is expected
             switch (client.getState()) {
                 case serviceReady:
-                    if (!message.substring(0,4).equalsIgnoreCase("helo")) {
+                    if (!message.substring(0, 4).equalsIgnoreCase("helo")) {
                         writeToChannel(invalidResp, key);
                         break;
                     }
@@ -195,7 +202,7 @@ public class SMTPServer {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setSender(message.substring(11, message.length()-3));
+                    client.setSender(message.substring(11, message.length() - 3));
                     writeToChannel(ackResp, key);
                     client.setState(mailFrom);
                     break;
@@ -205,7 +212,7 @@ public class SMTPServer {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setReceiver(message.substring(9, message.length()-3));
+                    client.setReceiver(message.substring(9, message.length() - 3));
                     writeToChannel(ackResp, key);
                     client.setState(rcptTo);
                     break;
@@ -221,10 +228,12 @@ public class SMTPServer {
 
                 case data:
                     String complete_message = client.getMessage() + message;
-                    if (complete_message.indexOf("\r\n.\r\n") == complete_message.length()-5) {
+                    if (complete_message.indexOf("\r\n.\r\n") == complete_message.length() - 5) {
                         client.setState(msg);
                         writeToChannel(ackResp, key);
+                        complete_message = complete_message.substring(0, complete_message.length() - 3);
                     }
+
                     client.setMessage(complete_message);
                     break;
 
@@ -244,14 +253,14 @@ public class SMTPServer {
                     break;
             }
 
-        } catch (IOException e){
+        } catch (IOException e) {
             try {
                 writeToChannel(internalResp, key);
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
             e.printStackTrace();
-        }        
+        }
     }
 
     public void startServer() {
@@ -260,19 +269,22 @@ public class SMTPServer {
 
             Iterator<SelectionKey> iter;
             SelectionKey key;
-            while(ssc.isOpen()) {
+            while (ssc.isOpen()) {
                 // Block until at least one channel has been selected
-                if (selector.select() == 0) continue;
+                if (selector.select() == 0)
+                    continue;
                 // Get an iterator over the set of selected keys
                 iter = selector.selectedKeys().iterator();
                 // Look at each key in the selected set
-                while(iter.hasNext()) {
+                while (iter.hasNext()) {
                     // Get current key
                     key = iter.next();
                     // Is a new connection coming in?
-                    if(key.isAcceptable()) handleAccept(key);
+                    if (key.isAcceptable())
+                        handleAccept(key);
                     // Is there data to read on this channel?
-                    if(key.isReadable()) handleRead(key);
+                    if (key.isReadable())
+                        handleRead(key);
                     // // Remove key from selected set; it's been handled
                     iter.remove();
                 }
