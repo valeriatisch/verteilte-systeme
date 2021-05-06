@@ -175,8 +175,8 @@ public class SMTPServer {
                 writeToChannel(unknownResp, key);
                 return;
             }
-            // 'help' message can be send anytime
-            if (message.equalsIgnoreCase("help\r\n")) {
+            // 'help' message can be send anytime (except in mail data)
+            if (client.getState() != data && message.equalsIgnoreCase("help\r\n")) {
                 writeToChannel(helpResp, key);
                 return;
             }
