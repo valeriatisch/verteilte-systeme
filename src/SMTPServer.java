@@ -202,7 +202,7 @@ public class SMTPServer {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setSender(message.substring(11, message.length() - 3));
+                    client.setSender(message.substring(11, message.length() - 2));
                     writeToChannel(ackResp, key);
                     client.setState(mailFrom);
                     break;
@@ -212,7 +212,7 @@ public class SMTPServer {
                         writeToChannel(invalidResp, key);
                         break;
                     }
-                    client.setReceiver(message.substring(9, message.length() - 3));
+                    client.setReceiver(message.substring(9, message.length() - 2));
                     writeToChannel(ackResp, key);
                     client.setState(rcptTo);
                     break;
