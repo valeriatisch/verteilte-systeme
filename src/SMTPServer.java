@@ -37,7 +37,7 @@ public class SMTPServer {
             .getBytes(charset);
     private static byte[] unrecResp = "500 The SMTP server was unable to correct process the command(s) received. This is probably due to a syntax error.\r\n"
             .getBytes(charset);
-    private static byte[] helpResp = "214 Help message received. Our SMTP server supports the following commands:\r\n"
+    private static byte[] helpResp = "214 Help message received. Our SMTP server supports the following commands:\nHELP\nHELO\nMAIL FROM: [address]\nRCPT TO: [address]\nDATA\nQUIT\r\n"
             .getBytes(charset);
     private static byte[] closingResp = "221 The connection to the mail server is now ending.\r\n".getBytes(charset);
     private static byte[] invalidResp = "503 Bad sequence of commands.\r\n".getBytes(charset);
