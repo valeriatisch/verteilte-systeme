@@ -1,6 +1,7 @@
-*.class
-src/*.class
+**/.class
 .idea
+**/.idea
 .DS_Store
-*.iml
+**/.iml
+**/out
 .vscode/launch.json
