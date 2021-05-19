@@ -1,3 +1,5 @@
+import java.util.LinkedList;
+
 /**
  * TODO:
  *
@@ -16,7 +18,39 @@
 
 class MessageSequencer extends Thread {
 
-    public void run() {
+    private LinkedList<String> queue;
+    private volatile boolean running = true;
+    private int numMsg = 0;
+    private final String filePath = "";
+    
+    public MessageSequencer() {
+        queue = new LinkedList<String>();
     }
 
+    public void terminate() {
+        // tell thread to terminate
+        this.running = false;
+    }
+
+    private boolean checkForMessage() {
+        // check if a new message arrived in queue
+        return numMsg == queue.size();
+    }
+
+    public void receiveMsg(String msg) {
+        queue.add(msg);
+    }
+
+    private void handleMsg() {
+        // broadcast internal messages accordingly
+    }
+
+    public void run() {
+        while(running) {
+            if(checkForMessage()) {
+
+            }
+        }
+    }
 }
+

@@ -28,19 +28,36 @@
  */
 
 public class App {
+
+    
     public static void main(String[] args) {
+        int nrThreads = 0;
+        int nrMsg = 0;
         if (args.length == 2) {
             try {
-                int NrThreads = Integer.parseInt(args[0]);
-                int NrMsg = Integer.parseInt(args[1]);
+                nrThreads = Integer.parseInt(args[0]);
+                nrMsg = Integer.parseInt(args[1]);
+                
             } catch (NumberFormatException e) {
                 System.err.println("Arguments must be integers.");
                 System.exit(1);
             }
+            
         } else {
             System.out.println("This program expects two arguments: 1. Number of Threads & 2. Number of messages to send");
+            System.exit(1);
         }
+        
+        MessageSequencer ms = new MessageSequencer();
+        MessageGenerator[] threads = new MessageGenerator[nrThreads];
+        for(int i=0; i<nrThreads; i++) {
+            threads[i] = new MessageGenerator(i);
+        }
+        for(int i=0; i<nrThreads; i++) {
+            // set thread array for every thread and start
+        }
+        
     }
 
-    MessageSequencer ms = new MessageSequencer();
+    
 }
