@@ -11,12 +11,12 @@ import java.util.LinkedList;
  */
 public class MessageGenerator extends Thread {
 
-    private LinkedList<String> queue;
+    private LinkedList<String> queue; // queue for incoming messages, maybe add a second list to store all messages for logging?
     private volatile boolean running = true;
     private int numMsg = 0;
     private final String filePath = "";
-    private MessageGenerator[] otherGenerators;
-    public int id;
+    private MessageGenerator[] otherGenerators; // needs to know the other threads
+    public int id; // id to identify thread (same as index in array)
 
     public MessageGenerator(int id) {
         this.id = id;
