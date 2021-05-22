@@ -1,3 +1,6 @@
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 /**
  * TODO:
  * Multiple threads broadcast messages over a message sequencer.
@@ -30,9 +33,10 @@
 public class App {
 
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         int nrThreads = 0;
         int nrMsg = 0;
+        int counter = 0;
         if (args.length == 2) {
             try {
                 nrThreads = Integer.parseInt(args[0]);
@@ -47,17 +51,39 @@ public class App {
             System.out.println("This program expects two arguments: 1. Number of Threads & 2. Number of messages to send");
             System.exit(1);
         }
-        
-        MessageSequencer ms = new MessageSequencer();
-        MessageGenerator[] threads = new MessageGenerator[nrThreads];
-        for(int i=0; i<nrThreads; i++) {
-            threads[i] = new MessageGenerator(i);
-        }
-        for(int i=0; i<nrThreads; i++) {
-            // set thread array for every thread and start
-        }
-        
-    }
 
+        MessageGenerator[] threads = new MessageGenerator[nrThreads];
+        MessageSequencer ms = new MessageSequencer(threads);
+        for (int i=0; i<nrThreads; i++) {
+//            System.out.println(i);
+            threads[i] = new MessageGenerator(i, ms);
+        }
+
+        for (int i=0; i<nrThreads; i++) {
+            threads[i].start();
+        }
+        ms.start();
+
+        while (counter < nrMsg) {
+            int randomThread = new Random().nextInt(nrThreads);
+            int randomPayload = (int) (Math.random() * Integer.MAX_VALUE);
+//            System.out.println("payload: " + counter);
+            Message msg = new Message(randomPayload, false);
+            synchronized (threads[randomThread]) {
+                threads[randomThread].receiveMsg(msg);
+                threads[randomThread].notify();
+            }
+            counter++;
+        }
+        TimeUnit.MILLISECONDS.sleep(20000);
+
+        for (int i=0; i<nrThreads; i++) {
+            threads[i].terminate();
+            threads[i].interrupt();
+        }
+        ms.terminate();
+        ms.interrupt();
+        System.exit(0);
+    }
     
 }
