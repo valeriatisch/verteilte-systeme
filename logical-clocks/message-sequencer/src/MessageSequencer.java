@@ -45,7 +45,6 @@ class MessageSequencer extends Thread{
     }
 
     public void receiveMsg(Message msg) {
-        //System.out.println("Sequencer inbox: " + msg.getPayload() + " from " + msg.getThreadId());
         this.queue.add(msg);
     }
 
@@ -54,13 +53,9 @@ class MessageSequencer extends Thread{
         Message msg = new Message(this.queue.get(this.numMsg));
         msg.setType(true);
         for (int i = 0; i < this.generators.length; i++) {
-//            System.out.println("msgThreadId: " + msg.getThreadId());
-//            System.out.println("ThreadId: " + i);
-            if (msg.getThreadId() != i) {
-                synchronized (this.generators[i]) {
-                    this.generators[i].receiveMsg(msg);
-                    this.generators[i].notify();
-                }
+            synchronized (this.generators[i]) {
+                this.generators[i].receiveMsg(msg);
+                this.generators[i].notify();
             }
         }
         this.numMsg++;
@@ -68,11 +63,9 @@ class MessageSequencer extends Thread{
 
     @Override
     public void run() {
-//        System.out.println("starting");
         while(this.running) {
             try{
                 synchronized (this) {
-                    //don't allow two threads at the same time to access this function
                     this.wait();
                 }
             } catch(InterruptedException ex){
