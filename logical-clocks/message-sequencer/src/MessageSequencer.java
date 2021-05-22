@@ -1,3 +1,6 @@
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
@@ -16,15 +19,19 @@ import java.util.LinkedList;
  *
  */
 
-class MessageSequencer extends Thread {
+class MessageSequencer extends Thread{
+    private static final Charset charset = StandardCharsets.US_ASCII;
+    private static final String dirPath = System.getProperty("user.dir") + "/logFiles";
 
-    private LinkedList<String> queue;
+    protected ArrayList<Message> queue;
+    private MessageGenerator[] generators;
     private volatile boolean running = true;
     private int numMsg = 0;
-    private final String filePath = "";
-    
-    public MessageSequencer() {
-        queue = new LinkedList<String>();
+
+
+    public MessageSequencer(MessageGenerator[] generators) {
+        this.queue = new ArrayList<>();
+        this.generators = generators;
     }
 
     public void terminate() {
@@ -34,21 +41,47 @@ class MessageSequencer extends Thread {
 
     private boolean checkForMessage() {
         // check if a new message arrived in queue
-        return numMsg == queue.size();
+        return this.numMsg < this.queue.size();
     }
 
-    public void receiveMsg(String msg) {
-        queue.add(msg);
+    public void receiveMsg(Message msg) {
+        //System.out.println("Sequencer inbox: " + msg.getPayload() + " from " + msg.getThreadId());
+        this.queue.add(msg);
     }
 
     private void handleMsg() {
         // broadcast internal messages accordingly
+        Message msg = new Message(this.queue.get(this.numMsg));
+        msg.setType(true);
+        for (int i = 0; i < this.generators.length; i++) {
+//            System.out.println("msgThreadId: " + msg.getThreadId());
+//            System.out.println("ThreadId: " + i);
+            if (msg.getThreadId() != i) {
+                synchronized (this.generators[i]) {
+                    this.generators[i].receiveMsg(msg);
+                    this.generators[i].notify();
+                }
+            }
+        }
+        this.numMsg++;
     }
 
+    @Override
     public void run() {
-        while(running) {
-            if(checkForMessage()) {
-
+//        System.out.println("starting");
+        while(this.running) {
+            try{
+                synchronized (this) {
+                    //don't allow two threads at the same time to access this function
+                    this.wait();
+                }
+            } catch(InterruptedException ex){
+                break;
+            }
+            while (this.queue.size() != 0) {
+                if (this.checkForMessage()) {
+                    this.handleMsg();
+                }
             }
         }
     }
