@@ -70,8 +70,6 @@ public class MessageGenerator extends Thread {
         String result = "";
         System.out.println("Thread queue size: " + this.queue.size());
         for (Message message: this.queue) {
-//            System.out.println(message.getPayload());
-//            System.out.println(message.isInternal());
             if (message.isInternal()) {
                 result += "" + message.getPayload() + "\n";
             }
@@ -90,7 +88,6 @@ public class MessageGenerator extends Thread {
             Message response = new Message(msg);
             response.setType(true);
             response.setThreadId(this.id);
-//            System.out.println("response: " + response.isInternal());
             synchronized (this.sequencer) {
                 this.sequencer.receiveMsg(response);
                 this.sequencer.notify();
@@ -104,7 +101,6 @@ public class MessageGenerator extends Thread {
         while(this.running) {
             try{
                 synchronized (this) {
-                    //don't allow two threads at the same time to access this function
                     this.wait();
                 }
             } catch(InterruptedException ex){
