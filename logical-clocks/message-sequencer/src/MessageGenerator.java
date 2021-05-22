@@ -110,11 +110,7 @@ public class MessageGenerator extends Thread {
             } catch(InterruptedException ex){
                 break;
             }
-            while (this.queue.size() != 0) {
-                if (this.checkForMessage()) {
-                    this.handleMsg();
-                }
-            }
+            while (this.checkForMessage()) { this.handleMsg(); }
         }
     }
 }
