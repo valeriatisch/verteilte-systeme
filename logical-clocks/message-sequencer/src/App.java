@@ -31,12 +31,102 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class App {
+    public static int SLEEP_TIME = 10000;
 
-    
+
+    // create threads for lamport
+    public static void createNodes(MessageGenerator[] threads) {
+        for (int i = 0; i < threads.length; i++) {
+            threads[i] = new MessageGenerator(i);
+        }
+        for (MessageGenerator thread : threads) {
+            thread.setGenerators(threads);
+        }
+    }
+    // create threads for msg sequencer
+    public static void createNodes(MessageGenerator[] threads, MessageSequencer sequencer) {
+        for (int i = 0; i < threads.length; i++) {
+            threads[i] = new MessageGenerator(i, sequencer);
+        }
+    }
+
+    // start threads
+    public static void startNodes(MessageGenerator[] threads) {
+        for (MessageGenerator thread : threads) {
+            thread.start();
+        }
+    }
+
+    // terminate threads
+    public static void terminateNodes(MessageGenerator[] threads) {
+        for (MessageGenerator thread : threads) {
+            thread.terminate();
+            thread.interrupt();
+        }
+    }
+
+    // Aufgabe 1
+    public static void messageSequencer(int nrThreads, int nrMsg) throws InterruptedException {
+        System.out.println("starting nodes with message sequencer");
+        MessageGenerator[] threads = new MessageGenerator[nrThreads];
+        MessageSequencer ms = new MessageSequencer(threads);
+
+        createNodes(threads, ms);
+        startNodes(threads);
+
+        ms.start();
+
+        int counter = 0;
+        // send random external messages
+        while (counter < nrMsg) {
+            int randomThread = new Random().nextInt(nrThreads);
+            int randomPayload = (int) (Math.random() * Integer.MAX_VALUE);
+            Message msg = new Message(randomPayload, false);
+            threads[randomThread].receiveMsg(msg);
+            synchronized (threads[randomThread]) {
+                threads[randomThread].notify();
+            }
+            counter++;
+        }
+        // sleep to allow threads to exchange messages before terminating
+        TimeUnit.MILLISECONDS.sleep(SLEEP_TIME);
+
+        // kill threads
+        terminateNodes(threads);
+        ms.terminate();
+        ms.interrupt();
+    }
+
+    // Aufgabe 2
+    public static void lamport(int nrThreads, int nrMsg) throws InterruptedException {
+        System.out.println("starting nodes with lamport");
+        MessageGenerator[] threads = new MessageGenerator[nrThreads];
+        createNodes(threads);
+        startNodes(threads);
+
+        int counter = 0;
+        // send random external messages
+        while (counter < nrMsg) {
+            int randomThread = new Random().nextInt(nrThreads);
+            int randomPayload = (int) (Math.random() * Integer.MAX_VALUE);
+            Message msg = new Message(randomPayload, false, counter);
+            //System.out.println("Message Nr "+counter+" with payload "+randomPayload+" sent From E to Thread " + randomThread);
+            threads[randomThread].receiveMsg(msg);
+            synchronized (threads[randomThread]) {
+                threads[randomThread].notify();
+            }
+            counter++;
+        }
+        // sleep to allow threads to exchange messages before terminating
+        TimeUnit.MILLISECONDS.sleep(SLEEP_TIME);
+
+        // kill threads
+        terminateNodes(threads);
+    }
+
     public static void main(String[] args) throws InterruptedException {
         int nrThreads = 0;
         int nrMsg = 0;
-        int counter = 0;
         if (args.length == 2) {
             try {
                 nrThreads = Integer.parseInt(args[0]);
@@ -51,38 +141,8 @@ public class App {
             System.out.println("This program expects two arguments: 1. Number of Threads & 2. Number of messages to send");
             System.exit(1);
         }
-
-        MessageGenerator[] threads = new MessageGenerator[nrThreads];
-        MessageSequencer ms = new MessageSequencer(threads);
-        for (int i=0; i<nrThreads; i++) {
-//            System.out.println(i);
-            threads[i] = new MessageGenerator(i, ms);
-        }
-
-        for (int i=0; i<nrThreads; i++) {
-            threads[i].start();
-        }
-        ms.start();
-
-        while (counter < nrMsg) {
-            int randomThread = new Random().nextInt(nrThreads);
-            int randomPayload = (int) (Math.random() * Integer.MAX_VALUE);
-//            System.out.println("payload: " + counter);
-            Message msg = new Message(randomPayload, false);
-            synchronized (threads[randomThread]) {
-                threads[randomThread].receiveMsg(msg);
-                threads[randomThread].notify();
-            }
-            counter++;
-        }
-        TimeUnit.MILLISECONDS.sleep(20000);
-
-        for (int i=0; i<nrThreads; i++) {
-            threads[i].terminate();
-            threads[i].interrupt();
-        }
-        ms.terminate();
-        ms.interrupt();
+        messageSequencer(nrThreads, nrMsg);
+        lamport(nrThreads, nrMsg);
         System.exit(0);
     }
     
