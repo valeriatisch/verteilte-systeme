@@ -1,7 +1,4 @@
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 /**
  * TODO:
@@ -20,7 +17,6 @@ import java.util.LinkedList;
  */
 
 class MessageSequencer extends Thread{
-    private static final Charset charset = StandardCharsets.US_ASCII;
     private static final String dirPath = System.getProperty("user.dir") + "/logFiles";
 
     protected ArrayList<Message> queue;
@@ -33,6 +29,7 @@ class MessageSequencer extends Thread{
         this.queue = new ArrayList<>();
         this.generators = generators;
     }
+
 
     public void terminate() {
         // tell thread to terminate
@@ -62,8 +59,9 @@ class MessageSequencer extends Thread{
     }
 
     @Override
-    public void run() {
+    public void  run() {
         while(this.running) {
+            // wait to be notified by a sender
             try{
                 synchronized (this) {
                     this.wait();
