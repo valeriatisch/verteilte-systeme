@@ -1,0 +1,21 @@
+Als erstes ersetzt man den Zähler der LamportUhr mit einem Array, der je Thread einen Eintrag hat, der den Zähler des jeweiligen Threads beinhaltet.
+Beim versenden der Nachricht muss das Array verschickt werden und der Zähler muss um eins erhöht werden.
+Außerdem muss beim Empfangen einer Nachricht  aus dem aktuellen und dem empfangenen Array elementweise das Maxiumum gebildet werden und noch der eigene
+Zähler um eins erhöht werden. Man muss noch die Funktion compareTo anpassen, indem man die jeweiligen Zeiten der Vektoruhr (Array) vergleicht.
+Wenn jeder Eintrag kleiner/ gleich/ kleinergleich ist , wird das Ereignis bei kleiner/kleinergleich vor dem größeren Ereignis eingestuft, bei gleich
+sind die Ereignisse gleichzeitig geschehen und wenn keiner dieser Fälle zutrifft, kann man diese Ereignisse nicht vergleichen.
+
+
+
+
+
+
+Die Vektoruhren implizieren eine partielle Ordnung.
+
+Da es nebenläufige Threads gibt, könnte es passieren, dass z.B 2 Threads gleichzeitig eine Nachricht senden und im Verlauf unterscheiden sie sich wer z.B
+die Nachricht als erstes gesendet hat. Also kann es passieren, dass sich die Threads im Verlauf unterscheiden. Um zu kontrollieren,ob trotzdem alles 
+richtig Verlaufen ist, muss man sicherstellen, dass sich die Reihenfolge nur für  Ereignisse mit nicht vergleichbaren Zeitstempeln unterscheidet.
+
+Vorteile: Man kann  die kausale Reihenfolge von Ereignisse  und die Nebenläufigkeit dieser Ereignissen besser bestimmen.
+Nachteile : Die  Implementation ist schwerer, da es nicht nur einen Wert bei den Zeitstempeln gibt und diese mit der Anzahl der Teilnehemer skaliert.
+Außerdem kann es zu Problemen kommen beim Hinzukommen und Verlassen von Teilnehmern,weil die Größe der Vektoruhr bei jedem Teilnehmer angepasst werden muss.
