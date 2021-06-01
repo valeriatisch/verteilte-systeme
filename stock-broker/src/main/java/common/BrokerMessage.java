@@ -1,4 +1,4 @@
-package de.tu_berlin.cit.vs.jms.common;
+package common;
 
 import java.io.Serializable;
 
