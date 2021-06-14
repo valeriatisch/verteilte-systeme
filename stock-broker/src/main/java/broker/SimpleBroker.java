@@ -1,6 +1,6 @@
 package broker;
 
-import common.Stock;
+import common.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.*;
@@ -21,7 +21,44 @@ public class SimpleBroker {
         @Override
         public void onMessage(Message msg) {
             if(msg instanceof ObjectMessage) {
-                //TODO
+                try {
+                    BrokerMessage message = (BrokerMessage) ((ObjectMessage) msg).getObject();
+                    switch(message.getType()) {
+                        case STOCK_BUY -> {
+                            // buy stock
+                            BuyMessage buy = (BuyMessage) message;
+                            System.out.println("Received buy request for: "+buy.getAmount()+" of stock "+buy.getStockName());
+                            // TODO: buy stock
+                        }
+                        case STOCK_LIST -> {
+                            // list stock
+                            System.out.println("Received list request.");
+                            List<Stock> stock = getStockList();
+                            // TODO: send message to correct client
+                        }
+                        case STOCK_SELL -> {
+                            SellMessage sell = (SellMessage) message;
+                            System.out.println("Received sell request for: "+sell.getAmount()+" of stock "+sell.getStockName());
+                            // TODO: sell stock
+                        }
+                        case SYSTEM_REGISTER -> {
+                            RegisterMessage reg = (RegisterMessage) message;
+                            String client = reg.getClientName();
+                            if(!clients.containsKey(client)) {
+                                clients.put(client, new HashMap<>());
+                            }
+                        }
+                        case SYSTEM_UNREGISTER -> {
+                            UnregisterMessage unreg = (UnregisterMessage) message;
+                            String client = unreg.getClientName();
+                            clients.remove(client);
+                            // TODO: what happens to the clients stock?
+                        }
+                    }
+
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
             }
         }
     };
