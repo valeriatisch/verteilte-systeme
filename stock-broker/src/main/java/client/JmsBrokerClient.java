@@ -2,11 +2,13 @@ package client;
 
 import common.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.shiro.crypto.hash.Hash;
 
 import javax.jms.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,34 +22,44 @@ public class JmsBrokerClient {
     private final MessageProducer msg_producer;
     private final MessageConsumer msg_consumer;
     private final MessageProducer reg_producer;
+    private HashMap<String, MessageConsumer> subscribers = new HashMap<>();
 
     public JmsBrokerClient(String clientName) throws JMSException {
         this.clientName = clientName;
 
         /* initialize connection, sessions, consumer, producer, etc. */
         ActiveMQConnectionFactory conFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        conFactory.setTrustAllPackages(true);
         con = conFactory.createConnection();
         con.start();
         session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        Queue prod_queue = session.createQueue("prod_queue");
+        Queue prod_queue = session.createQueue("server_incoming"+this.clientName);
         msg_producer = session.createProducer(prod_queue);
-        Queue cons_queue = session.createQueue("cons_queue");
+        Queue cons_queue = session.createQueue("server_outgoing"+this.clientName);
         msg_consumer = session.createConsumer(cons_queue);
         // send register message
-        Queue reg_queue = session.createQueue("reg_queue");
+        Queue reg_queue = session.createQueue("register");
         reg_producer = session.createProducer(reg_queue);
         reg_producer.send(session.createObjectMessage(new RegisterMessage(clientName)));
         System.out.println("Client requested to register themself as " + clientName);
+        Message message = msg_consumer.receive();
+        if (message instanceof TextMessage) {
+            System.out.println(((TextMessage) message).getText());
+        } else {
+            System.out.println("Invalid message detected");
+        }
     }
 
     public void requestList() throws JMSException {
         // send request list message
-        msg_producer.send(session.createObjectMessage(new RequestListMessage()));
+        ObjectMessage msg = session.createObjectMessage(new RequestListMessage());
+        msg.setStringProperty("ClientName", this.clientName);
+        msg_producer.send(msg);
         System.out.println("Client requested to see all stocks.");
         // receive list of stocks
-        Message msg = msg_consumer.receive();
-        if (msg instanceof ObjectMessage) {
-            ListMessage content = (ListMessage) ((ObjectMessage) msg).getObject();
+        Message message = msg_consumer.receive();
+        if (message instanceof ObjectMessage) {
+            ListMessage content = (ListMessage) ((ObjectMessage) message).getObject();
             System.out.println("Received reply ");
             System.out.println("\t List of the stocks: \n" + content.getStocks());
         } else {
@@ -57,22 +69,57 @@ public class JmsBrokerClient {
 
     public void buy(String stockName, int amount) throws JMSException {
         // send buy message
-        msg_producer.send(session.createObjectMessage(new BuyMessage(stockName, amount)));
+        ObjectMessage msg = session.createObjectMessage(new BuyMessage(stockName, amount));
+        msg.setStringProperty("ClientName", this.clientName);
+        msg_producer.send(msg);
         System.out.println("Client requested to buy " + stockName + " for " + amount);
+        Message message = msg_consumer.receive();
+        if (message instanceof TextMessage) {
+            System.out.println(((TextMessage) message).getText());
+        } else {
+            System.out.println("Invalid message detected");
+        }
     }
 
     public void sell(String stockName, int amount) throws JMSException {
         // send sell message
-        msg_producer.send(session.createObjectMessage(new SellMessage(stockName, amount)));
+        ObjectMessage msg = session.createObjectMessage(new SellMessage(stockName, amount));
+        msg.setStringProperty("ClientName", this.clientName);
+        msg_producer.send(msg);
         System.out.println("Client requested to sell " + stockName + " for " + amount);
+        Message message = msg_consumer.receive();
+        if (message instanceof TextMessage) {
+            System.out.println(((TextMessage) message).getText());
+        } else {
+            System.out.println("Invalid message detected");
+        }
     }
 
     public void watch(String stockName) throws JMSException {
-        //TODO
+        Topic topic = this.session.createTopic(stockName);
+        MessageConsumer subscriber = this.session.createConsumer(topic);
+        this.subscribers.put(stockName, subscriber);
+        MessageListener listener = message -> {
+            try {
+                System.out.println(((TextMessage) message).getText());
+            } catch (JMSException e) {
+                e.printStackTrace();
+            }
+        };
+        subscriber.setMessageListener(listener);
+        System.out.println("You are now watching stock: "+stockName);
     }
 
     public void unwatch(String stockName) throws JMSException {
-        //TODO
+        MessageConsumer subscriber = this.subscribers.get(stockName);
+        if(subscriber == null) {
+            System.out.println("You cannot unwatch not watched stock: "+stockName);
+        }
+        else {
+            subscriber.close();
+            this.subscribers.remove(stockName);
+            System.out.println("You are no longer watching stock: "+stockName);
+        }
     }
 
     public void quit() throws JMSException {
