@@ -7,7 +7,6 @@ import javax.jms.*;
 import java.util.*;
 import javax.jms.Queue;
 
-
 public class SimpleBroker {
     /* TODO: variables as needed */
     private Connection connection;
@@ -17,15 +16,13 @@ public class SimpleBroker {
     private ArrayList<Stock> stocks = new ArrayList<>();
     private HashMap<String, HashMap<String, Integer>> clients = new HashMap<>();
 
-
-
     private final MessageListener listener = new MessageListener() {
         @Override
         public void onMessage(Message msg) {
-            if(msg instanceof ObjectMessage) {
+            if (msg instanceof ObjectMessage) {
                 try {
                     BrokerMessage message = (BrokerMessage) ((ObjectMessage) msg).getObject();
-                    switch(message.getType()) {
+                    switch (message.getType()) {
                         case STOCK_BUY -> {
                             // buy stock
                             BuyMessage buy = (BuyMessage) message;
@@ -33,23 +30,22 @@ public class SimpleBroker {
                             int amount = buy.getAmount();
                             System.out.printf("Received buy request for %d of stock %s%n", amount, stock);
                             String client = msg.getStringProperty("ClientName");
-                            if(!clients.containsKey(client)) {
-                                session.createTextMessage("You are not registered. Did you send the message to a " +
-                                        "wrong queue?");
+                            if (!clients.containsKey(client)) {
+                                session.createTextMessage(
+                                        "You are not registered. Did you send the message to a " + "wrong queue?");
                                 break;
                             }
                             int succ = buy(client, buy.getStockName(), buy.getAmount());
                             MessageProducer producer = producers.get(client);
-                            if(succ==1) {
-                                producer.send(session.createTextMessage(String.format("You successfully bought %d of" +
-                                        " stock %s.", amount, stock)));
+                            if (succ == 1) {
+                                producer.send(session.createTextMessage(
+                                        String.format("You successfully bought %d of" + " stock %s.", amount, stock)));
                                 MessageProducer topicProducer = producers.get(stock);
-                                topicProducer.send(session.createTextMessage(String.format("%s bought %d of stock %s",
-                                        client, amount, stock)));
-                            }
-                            else {
-                                producer.send(session.createTextMessage(String.format("Could not buy %d of" +
-                                        " stock %s.", amount, stock)));
+                                topicProducer.send(session.createTextMessage(
+                                        String.format("%s bought %d of stock %s", client, amount, stock)));
+                            } else {
+                                producer.send(session.createTextMessage(
+                                        String.format("Could not buy %d of" + " stock %s.", amount, stock)));
                             }
                         }
                         case STOCK_LIST -> {
@@ -64,48 +60,69 @@ public class SimpleBroker {
                             SellMessage sell = (SellMessage) message;
                             String stock = sell.getStockName();
                             int amount = sell.getAmount();
-                            System.out.println("Received sell request for: "+sell.getAmount()+" of stock "+
-                                    sell.getStockName());
+                            System.out.println("Received sell request for: " + sell.getAmount() + " of stock "
+                                    + sell.getStockName());
                             String client = msg.getStringProperty("ClientName");
-                            if(!clients.containsKey(client)) {
-                                session.createTextMessage("You are not registered. Did you send the message to a " +
-                                        "wrong queue?");
+                            if (!clients.containsKey(client)) {
+                                session.createTextMessage(
+                                        "You are not registered. Did you send the message to a " + "wrong queue?");
                                 break;
                             }
                             int succ = sell(client, stock, amount);
                             MessageProducer producer = producers.get(client);
-                            if(succ==1) {
-                                producer.send(session.createTextMessage(String.format("You successfully sold %d of" +
-                                        " stock %s.", amount, stock)));
+                            if (succ == 1) {
+                                producer.send(session.createTextMessage(
+                                        String.format("You successfully sold %d of" + " stock %s.", amount, stock)));
                                 MessageProducer topicProducer = producers.get(stock);
-                                topicProducer.send(session.createTextMessage(String.format("%s sold %d of stock %s",
-                                        client, amount, stock)));
-                            }
-                            else {
-                                producer.send(session.createTextMessage(String.format("Could not sell %d of" +
-                                        " stock %s.", amount, stock)));
+                                topicProducer.send(session.createTextMessage(
+                                        String.format("%s sold %d of stock %s", client, amount, stock)));
+                            } else {
+                                producer.send(session.createTextMessage(
+                                        String.format("Could not sell %d of" + " stock %s.", amount, stock)));
                             }
                         }
                         case SYSTEM_REGISTER -> {
                             RegisterMessage reg = (RegisterMessage) message;
                             String client = reg.getClientName();
                             System.out.printf("Received register from client: %s%n", client);
-                            if(!clients.containsKey(client)) {
+                            if (!clients.containsKey(client)) {
                                 clients.put(client, new HashMap<>());
-                                Queue incoming = session.createQueue("server_incoming"+client);
-                                Queue outgoing = session.createQueue("server_outgoing"+client);
+                                Queue incoming = session.createQueue("server_incoming" + client);
+                                Queue outgoing = session.createQueue("server_outgoing" + client);
                                 MessageConsumer consumer = session.createConsumer(incoming);
                                 MessageProducer producer = session.createProducer(outgoing);
                                 consumers.put(client, consumer);
                                 producers.put(client, producer);
                                 consumer.setMessageListener(this);
-                                producer.send(session.createTextMessage("You were successfully registered at the broker!"));
-                            }
-                            else {
+                                producer.send(
+                                        session.createTextMessage("You were successfully registered at the broker!"));
+                            } else {
                                 producers.get(client).send(session.createTextMessage("You already are registered."));
                             }
                         }
                         case SYSTEM_UNREGISTER -> {
+                            // Message
+                            UnregisterMessage unreg = (UnregisterMessage) message;
+                            // getName
+                            String client = unreg.getClientName();
+                            // print
+                            System.out.printf("Received unregister from client. %s%n", client);
+                            if (clients.containsKey(client)) {
+                                HashMap<String, Integer> stocks = clients.get(client);
+                                HashMap<String, Integer> stockCopy = new HashMap<>(stocks);
+                                stockCopy.keySet().forEach(stock -> {
+                                    try {
+                                        sell(client, stock, stockCopy.get(stock));
+                                    } catch (JMSException e) {
+                                        e.printStackTrace();
+                                    }
+                                });
+                                consumers.get(client).close();
+                                producers.get(client).close();
+                                consumers.remove(client);
+                                producers.remove(client);
+                                clients.remove(client);
+                            }
                         }
                     }
 
@@ -128,7 +145,7 @@ public class SimpleBroker {
         Queue registerQueue = this.session.createQueue("register");
         // create consumer
         MessageConsumer consumer = this.session.createConsumer(registerQueue);
-        for(Stock stock : stockList) {
+        for (Stock stock : stockList) {
             /* TODO: prepare stocks as topics */
             Topic topic = this.session.createTopic(stock.getName());
             // store producer into Hashmap
@@ -140,7 +157,7 @@ public class SimpleBroker {
     }
 
     public void stop() throws JMSException {
-        //TODO
+        // TODO
         this.session.close();
         this.connection.close();
         System.exit(0);
@@ -148,7 +165,7 @@ public class SimpleBroker {
 
     public synchronized int buy(String clientName, String stockName, int amount) throws JMSException {
         Stock stockToBuy = null;
-        for (Stock stock: this.stocks) {
+        for (Stock stock : this.stocks) {
             if (stock.getName().equals(stockName)) {
                 stockToBuy = stock;
                 // remove stock from list to protect from concurrent write attempt
@@ -162,7 +179,7 @@ public class SimpleBroker {
             this.stocks.add(stockToBuy);
             return -1;
         }
-        if(this.clients.containsKey(clientName)) {
+        if (this.clients.containsKey(clientName)) {
             HashMap<String, Integer> ownedStocks = this.clients.get(clientName);
             if (ownedStocks.containsKey(stockName)) {
                 // broker already knows the client, they own the stock already
@@ -175,8 +192,7 @@ public class SimpleBroker {
                 ownedStocks.put(stockName, amount);
             }
             this.clients.replace(clientName, ownedStocks);
-        }
-        else {
+        } else {
             // client is buying for the first time
             HashMap<String, Integer> ownedStocks = new HashMap<>();
             ownedStocks.put(stockName, amount);
@@ -189,7 +205,7 @@ public class SimpleBroker {
 
     public synchronized int sell(String clientName, String stockName, int amount) throws JMSException {
         Stock stockToSell = null;
-        for (Stock stock: this.stocks) {
+        for (Stock stock : this.stocks) {
             if (stock.getName().equals(stockName)) {
                 stockToSell = stock;
                 // remove stock from list to protect from concurrent write attempt
@@ -203,7 +219,7 @@ public class SimpleBroker {
             this.stocks.add(stockToSell);
             return -1;
         }
-        if(this.clients.containsKey(clientName)) {
+        if (this.clients.containsKey(clientName)) {
             // broker already knows the client
             HashMap<String, Integer> ownedStocks = this.clients.get(clientName);
             System.out.println(ownedStocks);
