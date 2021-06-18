@@ -2,7 +2,6 @@ package broker;
 
 import common.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
-
 import javax.jms.*;
 import java.util.*;
 import javax.jms.Queue;
@@ -20,23 +19,29 @@ public class SimpleBroker {
         @Override
         public void onMessage(Message msg) {
             if (msg instanceof ObjectMessage) {
+                String client;
+                int succ;
+                int amount;
+                List<Stock> stocks;
+                MessageProducer producer;
+                String stock;
                 try {
                     BrokerMessage message = (BrokerMessage) ((ObjectMessage) msg).getObject();
                     switch (message.getType()) {
-                        case STOCK_BUY -> {
+                        case STOCK_BUY:
                             // buy stock
                             BuyMessage buy = (BuyMessage) message;
-                            String stock = buy.getStockName();
-                            int amount = buy.getAmount();
+                            stock = buy.getStockName();
+                            amount = buy.getAmount();
                             System.out.printf("Received buy request for %d of stock %s%n", amount, stock);
-                            String client = msg.getStringProperty("ClientName");
+                            client = msg.getStringProperty("ClientName");
                             if (!clients.containsKey(client)) {
                                 session.createTextMessage(
                                         "You are not registered. Did you send the message to a " + "wrong queue?");
                                 break;
                             }
-                            int succ = buy(client, buy.getStockName(), buy.getAmount());
-                            MessageProducer producer = producers.get(client);
+                            succ = buy(client, buy.getStockName(), buy.getAmount());
+                            producer = producers.get(client);
                             if (succ == 1) {
                                 producer.send(session.createTextMessage(
                                         String.format("You successfully bought %d of" + " stock %s.", amount, stock)));
@@ -47,29 +52,29 @@ public class SimpleBroker {
                                 producer.send(session.createTextMessage(
                                         String.format("Could not buy %d of" + " stock %s.", amount, stock)));
                             }
-                        }
-                        case STOCK_LIST -> {
+                            break;
+                        case STOCK_LIST:
                             // list stock
-                            String client = msg.getStringProperty("ClientName");
+                            client = msg.getStringProperty("ClientName");
                             System.out.println("Received list request.");
-                            List<Stock> stock = getStockList();
-                            MessageProducer producer = producers.get(client);
-                            producer.send(session.createObjectMessage(new ListMessage(stock)));
-                        }
-                        case STOCK_SELL -> {
+                            stocks = getStockList();
+                            producer = producers.get(client);
+                            producer.send(session.createObjectMessage(new ListMessage(stocks)));
+                            break;
+                        case STOCK_SELL:
                             SellMessage sell = (SellMessage) message;
-                            String stock = sell.getStockName();
-                            int amount = sell.getAmount();
+                            stock = sell.getStockName();
+                            amount = sell.getAmount();
                             System.out.println("Received sell request for: " + sell.getAmount() + " of stock "
                                     + sell.getStockName());
-                            String client = msg.getStringProperty("ClientName");
+                            client = msg.getStringProperty("ClientName");
                             if (!clients.containsKey(client)) {
                                 session.createTextMessage(
                                         "You are not registered. Did you send the message to a " + "wrong queue?");
                                 break;
                             }
-                            int succ = sell(client, stock, amount);
-                            MessageProducer producer = producers.get(client);
+                            succ = sell(client, stock, amount);
+                            producer = producers.get(client);
                             if (succ == 1) {
                                 producer.send(session.createTextMessage(
                                         String.format("You successfully sold %d of" + " stock %s.", amount, stock)));
@@ -80,17 +85,17 @@ public class SimpleBroker {
                                 producer.send(session.createTextMessage(
                                         String.format("Could not sell %d of" + " stock %s.", amount, stock)));
                             }
-                        }
-                        case SYSTEM_REGISTER -> {
+                            break;
+                        case SYSTEM_REGISTER:
                             RegisterMessage reg = (RegisterMessage) message;
-                            String client = reg.getClientName();
+                            client = reg.getClientName();
                             System.out.printf("Received register from client: %s%n", client);
                             if (!clients.containsKey(client)) {
                                 clients.put(client, new HashMap<>());
                                 Queue incoming = session.createQueue("server_incoming" + client);
                                 Queue outgoing = session.createQueue("server_outgoing" + client);
                                 MessageConsumer consumer = session.createConsumer(incoming);
-                                MessageProducer producer = session.createProducer(outgoing);
+                                producer = session.createProducer(outgoing);
                                 consumers.put(client, consumer);
                                 producers.put(client, producer);
                                 consumer.setMessageListener(this);
@@ -99,20 +104,20 @@ public class SimpleBroker {
                             } else {
                                 producers.get(client).send(session.createTextMessage("You already are registered."));
                             }
-                        }
-                        case SYSTEM_UNREGISTER -> {
+                            break;
+                        case SYSTEM_UNREGISTER:
                             // Message
                             UnregisterMessage unreg = (UnregisterMessage) message;
                             // getName
-                            String client = unreg.getClientName();
+                            client = unreg.getClientName();
                             // print
                             System.out.printf("Received unregister from client. %s%n", client);
                             if (clients.containsKey(client)) {
-                                HashMap<String, Integer> stocks = clients.get(client);
-                                HashMap<String, Integer> stockCopy = new HashMap<>(stocks);
-                                stockCopy.keySet().forEach(stock -> {
+                                HashMap<String, Integer> clientStocks = clients.get(client);
+                                HashMap<String, Integer> stockCopy = new HashMap<>(clientStocks);
+                                stockCopy.keySet().forEach(s -> {
                                     try {
-                                        sell(client, stock, stockCopy.get(stock));
+                                        sell(client, s, stockCopy.get(s));
                                     } catch (JMSException e) {
                                         e.printStackTrace();
                                     }
@@ -123,9 +128,10 @@ public class SimpleBroker {
                                 producers.remove(client);
                                 clients.remove(client);
                             }
-                        }
+                            break;
+                        default:
+                            break;
                     }
-
                 } catch (JMSException e) {
                     e.printStackTrace();
                 }
@@ -233,14 +239,17 @@ public class SimpleBroker {
                     this.clients.replace(clientName, ownedStocks);
                 } else {
                     // client is trying to sell more than they own
+                    this.stocks.add(stockToSell);
                     return -1;
                 }
             } else {
                 // client doesn't own this stock yet
+                this.stocks.add(stockToSell);
                 return -1;
             }
         } else {
             // client is trying to sell stock they don't own
+            this.stocks.add(stockToSell);
             return -1;
         }
         stockToSell.setAvailableCount(stockToSell.getAvailableCount() + amount);
