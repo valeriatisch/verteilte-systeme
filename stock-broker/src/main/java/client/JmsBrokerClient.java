@@ -2,7 +2,6 @@ package client;
 
 import common.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.shiro.crypto.hash.Hash;
 
 import javax.jms.*;
 import java.io.BufferedReader;
@@ -13,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class JmsBrokerClient {
+public class JmsBrokerClient extends Thread {
 
     private final String clientName;
 
@@ -23,6 +22,10 @@ public class JmsBrokerClient {
     private final MessageConsumer msg_consumer;
     private final MessageProducer reg_producer;
     private HashMap<String, MessageConsumer> subscribers = new HashMap<>();
+
+    // to run multiple clients
+    public volatile boolean running;
+    public volatile String command = "empty";
 
     public JmsBrokerClient(String clientName) throws JMSException {
         this.clientName = clientName;
@@ -55,15 +58,15 @@ public class JmsBrokerClient {
         ObjectMessage msg = session.createObjectMessage(new RequestListMessage());
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
-        System.out.println("Client requested to see all stocks.");
+        System.out.println(this.clientName + " requested to see all stocks.");
         // receive list of stocks
         Message message = msg_consumer.receive();
         if (message instanceof ObjectMessage) {
             ListMessage content = (ListMessage) ((ObjectMessage) message).getObject();
-            System.out.println("Received reply ");
-            System.out.println("\t List of the stocks: \n" + content.getStocks());
+//            System.out.println(this.clientName + " Received reply ");
+            System.out.println(this.clientName + " \t List of the stocks: \n" + content.getStocks());
         } else {
-            System.out.println("Invalid message detected");
+            System.out.println(this.clientName + " Invalid message detected");
         }
     }
 
@@ -72,12 +75,12 @@ public class JmsBrokerClient {
         ObjectMessage msg = session.createObjectMessage(new BuyMessage(stockName, amount));
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
-        System.out.println("Client requested to buy " + stockName + " for " + amount);
+        System.out.println(this.clientName + " requested to buy " + stockName + " for " + amount);
         Message message = msg_consumer.receive();
         if (message instanceof TextMessage) {
             System.out.println(((TextMessage) message).getText());
         } else {
-            System.out.println("Invalid message detected");
+            System.out.println(this.clientName + " Invalid message detected");
         }
     }
 
@@ -86,12 +89,12 @@ public class JmsBrokerClient {
         ObjectMessage msg = session.createObjectMessage(new SellMessage(stockName, amount));
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
-        System.out.println("Client requested to sell " + stockName + " for " + amount);
+        System.out.println(this.clientName + " requested to sell " + stockName + " for " + amount);
         Message message = msg_consumer.receive();
         if (message instanceof TextMessage) {
             System.out.println(((TextMessage) message).getText());
         } else {
-            System.out.println("Invalid message detected");
+            System.out.println(this.clientName + " Invalid message detected");
         }
     }
 
@@ -106,19 +109,19 @@ public class JmsBrokerClient {
                 e.printStackTrace();
             }
         };
-        subscriber.setMessageListener(listener);
-        System.out.println("You are now watching stock: "+stockName);
+        //subscriber.setMessageListener(listener);
+        System.out.println(this.clientName + " You are now watching stock: "+stockName);
     }
 
     public void unwatch(String stockName) throws JMSException {
         MessageConsumer subscriber = this.subscribers.get(stockName);
         if(subscriber == null) {
-            System.out.println("You cannot unwatch not watched stock: "+stockName);
+            System.out.println(this.clientName + " You cannot unwatch not watched stock: "+stockName);
         }
         else {
             subscriber.close();
             this.subscribers.remove(stockName);
-            System.out.println("You are no longer watching stock: "+stockName);
+            System.out.println(this.clientName + " You are no longer watching stock: "+stockName);
         }
     }
 
@@ -129,9 +132,66 @@ public class JmsBrokerClient {
         msg_producer.close();
         msg_consumer.close();
         con.close();
-        System.out.println("Client quit");
+        System.out.println(this.clientName + " quit");
     }
 
+    @Override
+    public void run(){
+        running = true;
+        try {
+            while (running) {
+                if (!this.command.equals("empty")) {
+                    synchronized (this) {
+                        String[] task = this.command.split(" ");
+                        switch (task[0].toLowerCase()) {
+                            case "quit":
+                                this.quit();
+                                System.out.println(this.clientName + ": Bye bye");
+                                running = false;
+                                break;
+                            case "list":
+                                this.requestList();
+                                break;
+                            case "buy":
+                                if (task.length == 3) {
+                                    this.buy(task[1], Integer.parseInt(task[2]));
+                                } else {
+                                    System.out.println(this.clientName + ": Correct usage: buy [stock] [amount]");
+                                }
+                                break;
+                            case "sell":
+                                if (task.length == 3) {
+                                    this.sell(task[1], Integer.parseInt(task[2]));
+                                } else {
+                                    System.out.println(this.clientName + ": Correct usage: sell [stock] [amount]");
+                                }
+                                break;
+                            case "watch":
+                                if (task.length == 2) {
+                                    this.watch(task[1]);
+                                } else {
+                                    System.out.println(this.clientName + ": Correct usage: watch [stock]");
+                                }
+                                break;
+                            case "unwatch":
+                                if (task.length == 2) {
+                                    this.unwatch(task[1]);
+                                } else {
+                                    System.out.println(this.clientName + ": Correct usage: watch [stock]");
+                                }
+                                break;
+                            default:
+                                System.out.println(this.clientName + ": Unknown command. Try one of:");
+                                System.out.println("quit, list, buy, sell, watch, unwatch");
+                        }
+                        this.command = "empty";
+                    }
+                }
+            }
+        } catch (JMSException ex) {
+            Logger.getLogger(JmsBrokerClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     /**
      * @param args the command line arguments
      */
