@@ -7,6 +7,7 @@ import javax.jms.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,10 +23,35 @@ public class JmsBrokerClient extends Thread {
     private final MessageConsumer msg_consumer;
     private final MessageProducer reg_producer;
     private HashMap<String, MessageConsumer> subscribers = new HashMap<>();
-
     // to run multiple clients
     public volatile boolean running;
     public volatile String command = "empty";
+
+    private final MessageListener listener = new MessageListener() {
+        @Override
+        public void onMessage(Message msg) {
+            if(msg instanceof TextMessage) {
+                String text;
+                try {
+                    text = ((TextMessage) msg).getText();
+                    System.out.println( clientName + ": " + text);
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
+            } else if (msg instanceof ObjectMessage) {
+                ListMessage content = null;
+                try {
+                    content = (ListMessage) ((ObjectMessage) msg).getObject();
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
+//            System.out.println(this.clientName + " Received reply ");
+                System.out.println(clientName + " \t List of the stocks: \n" + content.getStocks());
+            } else {
+                System.out.println(clientName + " Invalid message detected");
+            }
+        }
+    };
 
     public JmsBrokerClient(String clientName) throws JMSException {
         this.clientName = clientName;
@@ -45,12 +71,7 @@ public class JmsBrokerClient extends Thread {
         reg_producer = session.createProducer(reg_queue);
         reg_producer.send(session.createObjectMessage(new RegisterMessage(clientName)));
         System.out.println("Client requested to register themself as " + clientName);
-        Message message = msg_consumer.receive();
-        if (message instanceof TextMessage) {
-            System.out.println(((TextMessage) message).getText());
-        } else {
-            System.out.println("Invalid message detected");
-        }
+        msg_consumer.setMessageListener(this.listener);
     }
 
     public void requestList() throws JMSException {
@@ -59,15 +80,6 @@ public class JmsBrokerClient extends Thread {
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
         System.out.println(this.clientName + " requested to see all stocks.");
-        // receive list of stocks
-        Message message = msg_consumer.receive();
-        if (message instanceof ObjectMessage) {
-            ListMessage content = (ListMessage) ((ObjectMessage) message).getObject();
-//            System.out.println(this.clientName + " Received reply ");
-            System.out.println(this.clientName + " \t List of the stocks: \n" + content.getStocks());
-        } else {
-            System.out.println(this.clientName + " Invalid message detected");
-        }
     }
 
     public void buy(String stockName, int amount) throws JMSException {
@@ -76,12 +88,6 @@ public class JmsBrokerClient extends Thread {
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
         System.out.println(this.clientName + " requested to buy " + stockName + " for " + amount);
-        Message message = msg_consumer.receive();
-        if (message instanceof TextMessage) {
-            System.out.println(((TextMessage) message).getText());
-        } else {
-            System.out.println(this.clientName + " Invalid message detected");
-        }
     }
 
     public void sell(String stockName, int amount) throws JMSException {
@@ -90,26 +96,13 @@ public class JmsBrokerClient extends Thread {
         msg.setStringProperty("ClientName", this.clientName);
         msg_producer.send(msg);
         System.out.println(this.clientName + " requested to sell " + stockName + " for " + amount);
-        Message message = msg_consumer.receive();
-        if (message instanceof TextMessage) {
-            System.out.println(((TextMessage) message).getText());
-        } else {
-            System.out.println(this.clientName + " Invalid message detected");
-        }
     }
 
     public void watch(String stockName) throws JMSException {
         Topic topic = this.session.createTopic(stockName);
         MessageConsumer subscriber = this.session.createConsumer(topic);
+        subscriber.setMessageListener(listener);
         this.subscribers.put(stockName, subscriber);
-        MessageListener listener = message -> {
-            try {
-                System.out.println(((TextMessage) message).getText());
-            } catch (JMSException e) {
-                e.printStackTrace();
-            }
-        };
-        //subscriber.setMessageListener(listener);
         System.out.println(this.clientName + " You are now watching stock: "+stockName);
     }
 
@@ -119,7 +112,8 @@ public class JmsBrokerClient extends Thread {
             System.out.println(this.clientName + " You cannot unwatch not watched stock: "+stockName);
         }
         else {
-            subscriber.close();
+            //subscriber.close();
+            subscriber.setMessageListener(null);
             this.subscribers.remove(stockName);
             System.out.println(this.clientName + " You are no longer watching stock: "+stockName);
         }
