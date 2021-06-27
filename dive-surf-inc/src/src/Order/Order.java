@@ -7,6 +7,104 @@ import java.util.Random;
 
 public class Order {
 
+    private String CustomerID;
+    private String FirstName;
+    private String LastName;
+    private String OverallItems;
+    private String NumberOfDivingSuits;
+    private String NumberOfSurfSuits;
+    private String OrderID;
+    private String Valid;
+    private String validationResult;
+
+    public Order() {
+    }
+
+    public Order(String CustomerID, String FirstName, String LastName, String OverallItems, String NumberOfDivingSuits,
+                 String NumberOfSurfSuits, String OrderID, String Valid, String validationResult) {
+        this.CustomerID = CustomerID;
+        this.FirstName = FirstName;
+        this.LastName = LastName;
+        this.OverallItems = OverallItems;
+        this.NumberOfDivingSuits = NumberOfDivingSuits;
+        this.NumberOfSurfSuits = NumberOfSurfSuits;
+        this.OrderID = OrderID;
+        this.Valid = Valid;
+        this.validationResult = validationResult;
+    }
+
+    public String getCustomerID() {
+        return CustomerID;
+    }
+
+    public String getFirstName() {
+        return FirstName;
+    }
+
+    public String getLastName() {
+        return LastName;
+    }
+
+    public String getOverallItems() {
+        return OverallItems;
+    }
+
+    public String getNumberOfDivingSuits() {
+        return NumberOfDivingSuits;
+    }
+
+    public String getNumberOfSurfSuits() {
+        return NumberOfSurfSuits;
+    }
+
+    public String getOrderID() {
+        return OrderID;
+    }
+
+    public String getValid() {
+        return Valid;
+    }
+
+    public String getValidationResult() {
+        return validationResult;
+    }
+
+    public void setCustomerID(String customerID) {
+        CustomerID = customerID;
+    }
+
+    public void setFirstName(String firstName) {
+        FirstName = firstName;
+    }
+
+    public void setLastName(String lastName) {
+        LastName = lastName;
+    }
+
+    public void setOverallItems(String overallItems) {
+        OverallItems = overallItems;
+    }
+
+    public void setNumberOfDivingSuits(String numberOfDivingSuits) {
+        NumberOfDivingSuits = numberOfDivingSuits;
+    }
+
+    public void setNumberOfSurfSuits(String numberOfSurfSuits) {
+        NumberOfSurfSuits = numberOfSurfSuits;
+    }
+
+    public void setOrderID(String orderID) {
+        OrderID = orderID;
+    }
+
+    public void setValid(String valid) {
+        Valid = valid;
+    }
+
+    public void setValidationResult(String validationResult) {
+        this.validationResult = validationResult;
+    }
+
     public String generate_order(int format) {
         Random rand = new Random();
         String[] firstName =  new String[] { "Adam", "Alexa", "Aaron", "Bella", "Carl", "Daria", "Dawson", "Ella",
