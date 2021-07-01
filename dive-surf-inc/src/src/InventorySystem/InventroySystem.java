@@ -9,6 +9,12 @@ incoming messages and optional modifies the validationResult property
 
 package InventorySystem;
 
+import Order.Order;
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+import javax.jms.*;
+import java.io.Serializable;
+
 public class InventroySystem {
 
 }
