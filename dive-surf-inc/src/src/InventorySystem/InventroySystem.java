@@ -9,6 +9,7 @@ incoming messages and optional modifies the validationResult property
 
 package InventorySystem;
 
+import Order.Order;
 import org.apache.activemq.camel.component.ActiveMQComponent;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -57,31 +58,30 @@ public class InventorySystem {
 
     private static Processor InventoryCheck = new Processor() {
         public void process(Exchange exchange) throws Exception {
-            String body = exchange.getIn().getBody(String.class);
-            // split body into different properties
-            String[] message = body.split(", ");
-            int surfboards = Integer.parseInt(message[5]);
-            int diveSuits = Integer.parseInt(message[4]);
+            Order order = (Order) exchange.getIn().getBody();
+
+            int surfboards = Integer.parseInt(order.getNumberOfSurfboards());
+            int diveSuits = Integer.parseInt(order.getNumberOfDivingSuits());
             // set 'Valid' property
-            message[7] = Boolean.toString(checkInventory(surfboards, diveSuits));
+            order.setValid(Boolean.toString(checkInventory(surfboards, diveSuits)));
             // return Exchange
-            String outMsg = String.join(", ", message);
-            exchange.getIn().setBody(outMsg);
+            exchange.getIn().setBody(order);
         }
     };
 
     private static Processor InventoryUpdate = new Processor() {
         public void process(Exchange exchange) throws Exception {
-            String body = exchange.getIn().getBody(String.class);
+            Order order = (Order) exchange.getIn().getBody();
             // split body into different properties
-            String[] message = body.split(", ");
-            int surfboards = Integer.parseInt(message[5]);
-            int diveSuits = Integer.parseInt(message[4]);
+
+            int surfboards = Integer.parseInt(order.getNumberOfSurfboards());
+            int diveSuits = Integer.parseInt(order.getNumberOfDivingSuits());
             // update Inventory
             updateInventory(surfboards, diveSuits);
             // return Exchange
-            String outMsg = String.join(", ", message);
-            exchange.getIn().setBody(outMsg);
+            order.setValid(Boolean.toString(checkInventory(surfboards, diveSuits)));
+;
+            exchange.getIn().setBody(order);
         }
     };
 
