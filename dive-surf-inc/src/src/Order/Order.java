@@ -12,7 +12,7 @@ public class Order {
     private String LastName;
     private String OverallItems;
     private String NumberOfDivingSuits;
-    private String NumberOfSurfSuits;
+    private String NumberOfSurfboards;
     private String OrderID;
     private String Valid;
     private String validationResult;
@@ -21,13 +21,13 @@ public class Order {
     }
 
     public Order(String CustomerID, String FirstName, String LastName, String OverallItems, String NumberOfDivingSuits,
-                 String NumberOfSurfSuits, String OrderID, String Valid, String validationResult) {
+                 String NumberOfSurfboards, String OrderID, String Valid, String validationResult) {
         this.CustomerID = CustomerID;
         this.FirstName = FirstName;
         this.LastName = LastName;
         this.OverallItems = OverallItems;
         this.NumberOfDivingSuits = NumberOfDivingSuits;
-        this.NumberOfSurfSuits = NumberOfSurfSuits;
+        this.NumberOfSurfboards = NumberOfSurfboards;
         this.OrderID = OrderID;
         this.Valid = Valid;
         this.validationResult = validationResult;
@@ -53,8 +53,8 @@ public class Order {
         return NumberOfDivingSuits;
     }
 
-    public String getNumberOfSurfSuits() {
-        return NumberOfSurfSuits;
+    public String getNumberOfSurfboards() {
+        return NumberOfSurfboards;
     }
 
     public String getOrderID() {
@@ -90,7 +90,7 @@ public class Order {
     }
 
     public void setNumberOfSurfSuits(String numberOfSurfSuits) {
-        NumberOfSurfSuits = numberOfSurfSuits;
+        NumberOfSurfboards = numberOfSurfSuits;
     }
 
     public void setOrderID(String orderID) {
