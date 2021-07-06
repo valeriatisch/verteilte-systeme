@@ -3,9 +3,10 @@ package Order;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Random;
 
-public class Order {
+public class Order implements Serializable {
 
     private String CustomerID;
     private String FirstName;

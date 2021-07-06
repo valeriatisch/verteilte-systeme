@@ -25,7 +25,6 @@ public class InventorySystem {
     public static void setTotalSurfboards(int total) {
         totalSurfboards = total;
     }
-
     public static int getTotalSurfboards() {
         return totalSurfboards;
     }
@@ -102,6 +101,7 @@ public class InventorySystem {
                         .to("stream:out");
             }
         };
+
         context.addRoutes(route);
         context.start();
         System.in.read();
