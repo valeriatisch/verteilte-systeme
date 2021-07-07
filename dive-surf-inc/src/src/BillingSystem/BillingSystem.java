@@ -21,6 +21,7 @@ public class BillingSystem {
             order.setValid(Boolean.toString(valid));
             // the billing system modifies modifies the validationResult property
             order.setValid(Boolean.toString(valid));
+            System.out.println("Order: "+order.getOrderID()+" is "+valid);
             // return Exchange
             exchange.getIn().setBody(order);
         }

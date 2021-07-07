@@ -37,7 +37,7 @@ public class Resultsystem {
             Boolean valid = Boolean.parseBoolean(order.getValid());
             Boolean valid1 = Boolean.parseBoolean(order1.getValid());
 
-            order1.setValid(Boolean.toString(valid && valid1));
+            order1.setValidationResult(Boolean.toString(valid && valid1));
 
             exchange1.getIn().setBody(order1);
             return exchange1;
@@ -57,9 +57,9 @@ public class Resultsystem {
             public void configure() throws Exception {
 
                 from("activemq:queue:validated")
-                        .aggregate(constant(0), new BooleanAggregation()).completionInterval(5)
+                        .aggregate(constant(true), new BooleanAggregation()).completionInterval(5)
                         .choice()
-                            .when(header("Valid"))
+                            .when(header("validationResult"))
                                 .multicast()
                                 .to("activemq:topic:processed", "stream:out");
             }

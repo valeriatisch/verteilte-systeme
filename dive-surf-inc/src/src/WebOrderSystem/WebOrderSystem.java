@@ -24,6 +24,14 @@ public class WebOrderSystem {
     private final Connection con;
     private final Session session;
     private final MessageProducer msg_producer;
+    private static final String[] firstName =  new String[] { "Adam", "Alexa", "Aaron", "Bella", "Carl", "Daria", "Dawson", "Ella",
+            "Fred", "Fiona", "George", "Hella", "Hank", "Isa", "John", "Joanna", "Joe", "Lea", "Monte", "Marina",
+            "Mark", "Nina", "Otto", "Paula", "Peter", "Rose", "Steve", "Tina", "Tim", "Victoria", "Walter"};
+    private static final String[] lastName = new String[] { "Anderson", "Ashwoon", "Aikin", "Bateman", "Bongard", "Bowers", "Boyd",
+            "Cannon", "Cast", "Deitz", "Dewalt", "Ebner", "Frick", "Hancock", "Haworth", "Hesch", "Hoffman",
+            "Kassing", "Knutson", "Lawless", "Lawicki", "Mccord", "McCormack", "Miller", "Myers", "Nugent",
+            "Ortiz", "Orwig", "Ory", "Paiser", "Pak", "Pettigrew", "Quinn", "Quizoz", "Ramachandran", "Resnick",
+            "Sagar", "Schickowski", "Schiebel", "Sellon", "Severson", "Shaffer", "Solberg", "Soloman" };
 
     public WebOrderSystem() throws JMSException {
         ActiveMQConnectionFactory conFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
@@ -31,8 +39,8 @@ public class WebOrderSystem {
         con = conFactory.createConnection();
         con.start();
         session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        Queue orders_queue = session.createQueue("orders");
-        msg_producer = session.createProducer(orders_queue);
+        Topic order_topic = session.createTopic("Orders");
+        msg_producer = session.createProducer(order_topic);
     }
 
     public void stop() throws JMSException {
@@ -47,7 +55,8 @@ public class WebOrderSystem {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         boolean True = true;
-        while (True) {
+        int i = 0;
+        while (i < 1) {
 
             // In case it should be generated be the user:
             /*
@@ -81,10 +90,11 @@ public class WebOrderSystem {
             }
             */
 
-             Order order = new Order();
-             String order_str = order.generate_order(1);
-             System.out.println(order_str);
-             webordersys.msg_producer.send(webordersys.session.createObjectMessage(order_str));
+             Order order = new Order(String.valueOf(i), firstName[i], lastName[i], String.valueOf(2*i), String.valueOf(i), String.valueOf(i), String.valueOf(i), "false", "false");
+             //String order_str = order.generate_order(1);
+             //System.out.println(order_str);
+             webordersys.msg_producer.send(webordersys.session.createObjectMessage(order));
+             i++;
         }
 
         webordersys.stop();

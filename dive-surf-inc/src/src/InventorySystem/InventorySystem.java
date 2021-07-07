@@ -63,6 +63,7 @@ public class InventorySystem {
             int diveSuits = Integer.parseInt(order.getNumberOfDivingSuits());
             // set 'Valid' property
             order.setValid(Boolean.toString(checkInventory(surfboards, diveSuits)));
+            System.out.println("Order: "+order.getOrderID()+" is "+checkInventory(surfboards, diveSuits));
             // return Exchange
             exchange.getIn().setBody(order);
         }
