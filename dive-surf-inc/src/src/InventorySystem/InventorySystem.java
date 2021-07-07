@@ -16,23 +16,26 @@ import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 
-
 public class InventorySystem {
     private static int totalSurfboards = 100;
     private static int totalDivingSuits = 100;
 
-
+    // Set a new Value for totalSurfboards
     public static void setTotalSurfboards(int total) {
         totalSurfboards = total;
     }
+
+    // return the current Value of totalSurfboards
     public static int getTotalSurfboards() {
         return totalSurfboards;
     }
 
+    // Set a new Value for totalDivingSuits
     public static void setTotalDivingSuits(int total) {
         totalDivingSuits = total;
     }
 
+    // return the current Value of totalSurfboards
     public static int getTotalDivingSuits() {
         return totalDivingSuits;
     }
@@ -63,7 +66,7 @@ public class InventorySystem {
             int diveSuits = Integer.parseInt(order.getNumberOfDivingSuits());
             // set 'Valid' property
             order.setValid(Boolean.toString(checkInventory(surfboards, diveSuits)));
-            System.out.println("Order: "+order.getOrderID()+" is "+checkInventory(surfboards, diveSuits));
+            System.out.println("Order: " + order.getOrderID() + " is " + checkInventory(surfboards, diveSuits));
             // return Exchange
             exchange.getIn().setBody(order);
         }
@@ -80,7 +83,7 @@ public class InventorySystem {
             updateInventory(surfboards, diveSuits);
             // return Exchange
             order.setValid(Boolean.toString(checkInventory(surfboards, diveSuits)));
-;
+            ;
             exchange.getIn().setBody(order);
         }
     };
@@ -94,12 +97,8 @@ public class InventorySystem {
         RouteBuilder route = new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("activemq:topic:Orders")
-                        .process(InventoryCheck)
-                        .to("activemq:queue:validated");
-                from("activemq:topic:processed")
-                        .process(InventoryUpdate)
-                        .to("stream:out");
+                from("activemq:topic:Orders").process(InventoryCheck).to("activemq:queue:validated");
+                from("activemq:topic:processed").process(InventoryUpdate).to("stream:out");
             }
         };
 

@@ -44,9 +44,7 @@ public class Resultsystem {
         }
     }
 
-
-
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         DefaultCamelContext ctxt = new DefaultCamelContext();
         ActiveMQComponent activeMQComponent = ActiveMQComponent.activeMQComponent();
         activeMQComponent.setTrustAllPackages(true);
@@ -56,12 +54,9 @@ public class Resultsystem {
             @Override
             public void configure() throws Exception {
 
-                from("activemq:queue:validated")
-                        .aggregate(constant(true), new BooleanAggregation()).completionInterval(5)
-                        .choice()
-                            .when(header("validationResult"))
-                                .multicast()
-                                .to("activemq:topic:processed", "stream:out");
+                from("activemq:queue:validated").aggregate(constant(true), new BooleanAggregation())
+                        .completionInterval(5).choice().when(header("validationResult")).multicast()
+                        .to("activemq:topic:processed", "stream:out");
             }
         };
 

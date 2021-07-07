@@ -22,7 +22,7 @@ public class Order implements Serializable {
     }
 
     public Order(String CustomerID, String FirstName, String LastName, String OverallItems, String NumberOfDivingSuits,
-                 String NumberOfSurfboards, String OrderID, String Valid, String validationResult) {
+            String NumberOfSurfboards, String OrderID, String Valid, String validationResult) {
         this.CustomerID = CustomerID;
         this.FirstName = FirstName;
         this.LastName = LastName;
@@ -34,107 +34,125 @@ public class Order implements Serializable {
         this.validationResult = validationResult;
     }
 
+    // return the current CustomerID
     public String getCustomerID() {
-        return CustomerID;
+        return this.CustomerID;
     }
 
+    // return the current LastName
     public String getFirstName() {
-        return FirstName;
+        return this.FirstName;
     }
 
+    // return the current LastName
     public String getLastName() {
-        return LastName;
+        return this.LastName;
     }
 
+    // return the current OverallItems
     public String getOverallItems() {
-        return OverallItems;
+        return this.OverallItems;
     }
 
+    // return the current NumberOfDivingSuits
     public String getNumberOfDivingSuits() {
-        return NumberOfDivingSuits;
+        return this.NumberOfDivingSuits;
     }
 
+    // return the current NumberOfSurfboards
     public String getNumberOfSurfboards() {
-        return NumberOfSurfboards;
+        return this.NumberOfSurfboards;
     }
 
+    // return the current OrderID
     public String getOrderID() {
-        return OrderID;
+        return this.OrderID;
     }
 
+    // return the current Valid
     public String getValid() {
-        return Valid;
+        return this.Valid;
     }
 
+    // return the current validationResult
     public String getValidationResult() {
-        return validationResult;
+        return this.validationResult;
     }
 
+    // return the current CustomerID
     public void setCustomerID(String customerID) {
-        CustomerID = customerID;
+        this.CustomerID = customerID;
     }
 
+    // set a new Value for FirstName
     public void setFirstName(String firstName) {
-        FirstName = firstName;
+        this.FirstName = firstName;
     }
 
+    // set a new Value for LastName
     public void setLastName(String lastName) {
-        LastName = lastName;
+        this.LastName = lastName;
     }
 
+    // set a new Value for OverallItems
     public void setOverallItems(String overallItems) {
-        OverallItems = overallItems;
+        this.OverallItems = overallItems;
     }
 
+    // set a new Value for NumberOfDivingSuits
     public void setNumberOfDivingSuits(String numberOfDivingSuits) {
-        NumberOfDivingSuits = numberOfDivingSuits;
+        this.NumberOfDivingSuits = numberOfDivingSuits;
     }
 
+    // set a new Value for NumberOfSurfboards
     public void setNumberOfSurfSuits(String numberOfSurfSuits) {
-        NumberOfSurfboards = numberOfSurfSuits;
+        this.NumberOfSurfboards = numberOfSurfSuits;
     }
 
+    // set a new Value for OrderID
     public void setOrderID(String orderID) {
-        OrderID = orderID;
+        this.OrderID = orderID;
     }
 
+    // set a new Value for setValid
     public void setValid(String valid) {
-        Valid = valid;
+        this.Valid = valid;
     }
 
+    // set a new Value for validationResult
     public void setValidationResult(String validationResult) {
         this.validationResult = validationResult;
     }
 
     public String generate_order(int format) {
         Random rand = new Random();
-        String[] firstName =  new String[] { "Adam", "Alexa", "Aaron", "Bella", "Carl", "Daria", "Dawson", "Ella",
+        String[] firstName = new String[] { "Adam", "Alexa", "Aaron", "Bella", "Carl", "Daria", "Dawson", "Ella",
                 "Fred", "Fiona", "George", "Hella", "Hank", "Isa", "John", "Joanna", "Joe", "Lea", "Monte", "Marina",
-                "Mark", "Nina", "Otto", "Paula", "Peter", "Rose", "Steve", "Tina", "Tim", "Victoria", "Walter"};
+                "Mark", "Nina", "Otto", "Paula", "Peter", "Rose", "Steve", "Tina", "Tim", "Victoria", "Walter" };
         String[] lastName = new String[] { "Anderson", "Ashwoon", "Aikin", "Bateman", "Bongard", "Bowers", "Boyd",
                 "Cannon", "Cast", "Deitz", "Dewalt", "Ebner", "Frick", "Hancock", "Haworth", "Hesch", "Hoffman",
-                "Kassing", "Knutson", "Lawless", "Lawicki", "Mccord", "McCormack", "Miller", "Myers", "Nugent",
-                "Ortiz", "Orwig", "Ory", "Paiser", "Pak", "Pettigrew", "Quinn", "Quizoz", "Ramachandran", "Resnick",
-                "Sagar", "Schickowski", "Schiebel", "Sellon", "Severson", "Shaffer", "Solberg", "Soloman" };
+                "Kassing", "Knutson", "Lawless", "Lawicki", "Mccord", "McCormack", "Miller", "Myers", "Nugent", "Ortiz",
+                "Orwig", "Ory", "Paiser", "Pak", "Pettigrew", "Quinn", "Quizoz", "Ramachandran", "Resnick", "Sagar",
+                "Schickowski", "Schiebel", "Sellon", "Severson", "Shaffer", "Solberg", "Soloman" };
         String order_str = "";
-        if (format == 1){
-            order_str = firstName[rand.nextInt(firstName.length)] + ", " + lastName[rand.nextInt(lastName.length)] +
-                    ", " + rand.nextInt(1000) + ", " + rand.nextInt(1000) + ", "
-                    + rand.nextInt(1000) + '\n';
-        } else if (format == 2){
-            order_str = rand.nextInt(1000) + ", " + firstName[rand.nextInt(firstName.length)] + ' ' +
-                    lastName[rand.nextInt(lastName.length)] + ", " + rand.nextInt(1000) + ", "
-                    + rand.nextInt(1000) + '\n';
+        if (format == 1) {
+            order_str = firstName[rand.nextInt(firstName.length)] + ", " + lastName[rand.nextInt(lastName.length)]
+                    + ", " + rand.nextInt(1000) + ", " + rand.nextInt(1000) + ", " + rand.nextInt(1000) + '\n';
+        } else if (format == 2) {
+            order_str = rand.nextInt(1000) + ", " + firstName[rand.nextInt(firstName.length)] + ' '
+                    + lastName[rand.nextInt(lastName.length)] + ", " + rand.nextInt(1000) + ", " + rand.nextInt(1000)
+                    + '\n';
         }
         return order_str;
     }
 
-    public void generate_file(int nr){
+    public void generate_file(int nr) {
         Random rand = new Random();
         File order = new File("/Users/valeria.tisch/IdeaProjects/verteilte-systeme/dive-surf-inc/orders/order" + nr);
         try {
             FileWriter writer = new FileWriter(order);
-            for(int i=0; i <= rand.nextInt(10); i++) writer.write(generate_order(2));
+            for (int i = 0; i <= rand.nextInt(10); i++)
+                writer.write(generate_order(2));
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
